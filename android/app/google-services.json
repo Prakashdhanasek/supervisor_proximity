@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364480735281",
+    "project_id": "supervisorapp-d8655",
+    "storage_bucket": "supervisorapp-d8655.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364480735281:android:99a3e701c006f38a930d10",
+        "android_client_info": {
+          "package_name": "com.example.supervisor_proximity"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSRGgWZ-Yb0rKQyHeNUJ_0apJAQB3rJyA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

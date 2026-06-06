@@ -1,0 +1,304 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:supervisor_proximity/login_screen.dart';
+import 'package:supervisor_proximity/views/theme/app_theme.dart';
+import '../controllers/fleet_controller.dart';
+
+
+/// Supervisor (Fleet Manager) profile. Fields map to the blueprint User entity
+/// (§11): name, role, tenant, contact, permissions, MFA status, activity status —
+/// plus the oversight counts a Fleet Manager monitors (§4).
+class SupervisorProfileView extends StatelessWidget {
+  const SupervisorProfileView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final fleet = context.watch<FleetController>();
+    final colors = AppTheme.of(context);
+
+    return Scaffold(
+      backgroundColor: colors.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _topBar(context),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                children: [
+                  _identityCard(context, fleet),
+                  const SizedBox(height: 14),
+                  _statsRow(context, fleet),
+                  const SizedBox(height: 14),
+                  _section(context, 'Account', [
+                    _row(context, Icons.badge_rounded, 'User ID', fleet.userId),
+                    _row(context, Icons.work_rounded, 'Role', fleet.supervisorRole),
+                    _row(context, Icons.business_rounded, 'Company', fleet.companyName),
+                    _row(context, Icons.location_city_rounded, 'Branch', fleet.branch),
+                  ]),
+                  const SizedBox(height: 14),
+                  _section(context, 'Contact', [
+                    _row(context, Icons.alternate_email_rounded, 'Email', fleet.supervisorEmail),
+                    _row(context, Icons.call_rounded, 'Phone', fleet.phone),
+                  ]),
+                  const SizedBox(height: 14),
+                  _permissionsCard(context, fleet),
+                  const SizedBox(height: 14),
+                  _securityCard(context, fleet),
+                  const SizedBox(height: 20),
+                  _signOutButton(context),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: AppTheme.of(context).textPrimary),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          Text('Profile',
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          const Spacer(),
+          IconButton(
+            icon: Icon(Icons.edit_outlined, size: 20, color: AppTheme.of(context).textSecondary),
+            onPressed: () => _snack(context, 'Editing is managed by your fleet admin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _identityCard(BuildContext context, FleetController fleet) {
+    final colors = AppTheme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        children: [
+          Container(
+            width: 78,
+            height: 78,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 8))],
+            ),
+            child: Text(fleet.supervisorInitials,
+                style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+          const SizedBox(height: 14),
+          Text(fleet.supervisorName,
+              style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w700, color: colors.textPrimary)),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.shield_moon_rounded, size: 13, color: AppTheme.primary),
+              const SizedBox(width: 5),
+              Text(fleet.supervisorRole,
+                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+            ]),
+          ),
+          const SizedBox(height: 8),
+          Text('${fleet.companyName} · ${fleet.branch}',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(fontSize: 12, color: colors.textMuted)),
+          const SizedBox(height: 12),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.success, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text('Active now',
+                style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.success)),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _statsRow(BuildContext context, FleetController fleet) {
+    Widget tile(IconData icon, String value, String label, Color color) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            decoration: AppTheme.cardDecoration(context),
+            child: Column(children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(height: 6),
+              Text(value, style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+              Text(label, textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 9, color: AppTheme.of(context).textMuted)),
+            ]),
+          ),
+        );
+    return Row(children: [
+      tile(Icons.local_shipping_rounded, '${fleet.vehiclesOverseen}', 'Vehicles', AppTheme.primary),
+      tile(Icons.people_rounded, '${fleet.driversOverseen}', 'Drivers', const Color(0xFF7C3AED)),
+      tile(Icons.verified_user_rounded, '${fleet.approvalsHandled}', 'Approvals', AppTheme.success),
+      tile(Icons.task_alt_rounded, '${fleet.incidentsResolved}', 'Resolved', AppTheme.warning),
+    ]);
+  }
+
+  Widget _section(BuildContext context, String title, List<Widget> rows) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          const SizedBox(height: 6),
+          ...rows,
+        ],
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(children: [
+        Icon(icon, size: 17, color: AppTheme.of(context).textMuted),
+        const SizedBox(width: 12),
+        Text(label, style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
+        ),
+      ]),
+    );
+  }
+
+  Widget _permissionsCard(BuildContext context, FleetController fleet) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text('Access & permissions',
+                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Text(fleet.accessLevel,
+                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          ...fleet.permissions.map((p) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(children: [
+                  const Icon(Icons.check_circle_rounded, size: 16, color: AppTheme.success),
+                  const SizedBox(width: 10),
+                  Text(p, style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+                ]),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _securityCard(BuildContext context, FleetController fleet) {
+    Widget toggle(IconData icon, String label, String sub, bool value, ValueChanged<bool> onChanged) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(children: [
+          Icon(icon, size: 17, color: AppTheme.of(context).textMuted),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
+              Text(sub, style: GoogleFonts.poppins(fontSize: 10, color: AppTheme.of(context).textMuted)),
+            ]),
+          ),
+          Switch(value: value, activeColor: AppTheme.primary, onChanged: onChanged),
+        ]),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Security', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          const SizedBox(height: 6),
+          toggle(Icons.verified_user_rounded, 'Multi-factor authentication',
+              fleet.mfaEnabled ? 'Enabled' : 'Disabled', fleet.mfaEnabled,
+              (v) => context.read<FleetController>().toggleMfa(v)),
+          toggle(Icons.face_rounded, 'Biometric sign-in',
+              fleet.biometricEnabled ? 'On' : 'Off', fleet.biometricEnabled,
+              (v) => context.read<FleetController>().toggleBiometric(v)),
+          _row(context, Icons.history_rounded, 'Last sign-in', 'Today'),
+        ],
+      ),
+    );
+  }
+
+  Widget _signOutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _confirmSignOut(context),
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: const Text('Sign out'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppTheme.danger,
+          side: const BorderSide(color: AppTheme.danger),
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.of(context).card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Sign out?',
+            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+        content: Text('You will need to sign in again to access fleet control.',
+            style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginView()),
+                (route) => false,
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger, foregroundColor: Colors.white, elevation: 0),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _snack(BuildContext context, String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+}
