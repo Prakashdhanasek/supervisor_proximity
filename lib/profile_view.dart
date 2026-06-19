@@ -67,7 +67,7 @@ class SupervisorProfileView extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
           ),
           Text('Profile',
-              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
           const Spacer(),
           IconButton(
             icon: Icon(Icons.edit_outlined, size: 20, color: AppTheme.of(context).textSecondary),
@@ -95,11 +95,11 @@ class SupervisorProfileView extends StatelessWidget {
               boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 18, offset: const Offset(0, 8))],
             ),
             child: Text(fleet.supervisorInitials,
-                style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
           ),
           const SizedBox(height: 14),
           Text(fleet.supervisorName,
-              style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w700, color: colors.textPrimary)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: colors.textPrimary)),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -108,19 +108,19 @@ class SupervisorProfileView extends StatelessWidget {
               const Icon(Icons.shield_moon_rounded, size: 13, color: AppTheme.primary),
               const SizedBox(width: 5),
               Text(fleet.supervisorRole,
-                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary)),
             ]),
           ),
           const SizedBox(height: 8),
           Text('${fleet.companyName} · ${fleet.branch}',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 12, color: colors.textMuted)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: colors.textMuted)),
           const SizedBox(height: 12),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.success, shape: BoxShape.circle)),
             const SizedBox(width: 6),
             Text('Active now',
-                style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.success)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.success)),
           ]),
         ],
       ),
@@ -136,8 +136,8 @@ class SupervisorProfileView extends StatelessWidget {
             child: Column(children: [
               Icon(icon, size: 18, color: color),
               const SizedBox(height: 6),
-              Text(value, style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
-              Text(label, textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 9, color: AppTheme.of(context).textMuted)),
+              Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+              Text(label, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: AppTheme.of(context).textMuted)),
             ]),
           ),
         );
@@ -156,7 +156,7 @@ class SupervisorProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
           const SizedBox(height: 6),
           ...rows,
         ],
@@ -170,12 +170,12 @@ class SupervisorProfileView extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 17, color: AppTheme.of(context).textMuted),
         const SizedBox(width: 12),
-        Text(label, style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.of(context).textSecondary)),
         const SizedBox(width: 12),
         Expanded(
           child: Text(value,
               textAlign: TextAlign.right,
-              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
         ),
       ]),
     );
@@ -190,13 +190,13 @@ class SupervisorProfileView extends StatelessWidget {
         children: [
           Row(children: [
             Text('Access & permissions',
-                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
               child: Text(fleet.accessLevel,
-                  style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary)),
             ),
           ]),
           const SizedBox(height: 12),
@@ -205,7 +205,7 @@ class SupervisorProfileView extends StatelessWidget {
                 child: Row(children: [
                   const Icon(Icons.check_circle_rounded, size: 16, color: AppTheme.success),
                   const SizedBox(width: 10),
-                  Text(p, style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+                  Text(p, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.of(context).textSecondary)),
                 ]),
               )),
         ],
@@ -222,8 +222,8 @@ class SupervisorProfileView extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
-              Text(sub, style: GoogleFonts.poppins(fontSize: 10, color: AppTheme.of(context).textMuted)),
+              Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textPrimary)),
+              Text(sub, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppTheme.of(context).textMuted)),
             ]),
           ),
           Switch(value: value, activeColor: AppTheme.primary, onChanged: onChanged),
@@ -237,7 +237,7 @@ class SupervisorProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Security', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          Text('Security', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
           const SizedBox(height: 6),
           toggle(Icons.verified_user_rounded, 'Multi-factor authentication',
               fleet.mfaEnabled ? 'Enabled' : 'Disabled', fleet.mfaEnabled,
@@ -275,9 +275,9 @@ class SupervisorProfileView extends StatelessWidget {
         backgroundColor: AppTheme.of(context).card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Sign out?',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
         content: Text('You will need to sign in again to access fleet control.',
-            style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.of(context).textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
           ElevatedButton(

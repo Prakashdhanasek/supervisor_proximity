@@ -2,6 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supervisor_proximity/login_screen.dart';
+import 'package:supervisor_proximity/services/auth_service.dart';
+import 'package:supervisor_proximity/views/supervisor_shell.dart';
+import 'package:provider/provider.dart';
+import 'package:supervisor_proximity/controllers/fleet_controller.dart';
 
 /// Animated splash for the Supervisor app. Mirrors the driver app's brand
 /// treatment (deep navy, orbit rings, shield wordmark) but is badged
@@ -74,9 +78,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _pulse.repeat(reverse: true);
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
+    
+    final bool isLoggedIn = AuthService.instance.isLoggedIn;
+    if (isLoggedIn) {
+      context.read<FleetController>().setSupervisorIdentity(
+        name: AuthService.instance.fullName,
+        email: AuthService.instance.email,
+      );
+    }
+    
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const LoginView(),
+        pageBuilder: (_, __, ___) => isLoggedIn ? const SupervisorShell() : const LoginView(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 600),
       ),
@@ -187,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           child: Column(
                             children: [
                               Text('PROXIMITY',
-                                  style: GoogleFonts.rajdhani(
+                                  style: GoogleFonts.plusJakartaSans(
                                       fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 11, height: 1.0)),
                               const SizedBox(height: 2),
                               ShaderMask(
@@ -195,7 +208,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                         colors: [Color(0xFF60A5FA), Color(0xFF3B82F6), Color(0xFF818CF8)])
                                     .createShader(b),
                                 child: Text('GUARD',
-                                    style: GoogleFonts.rajdhani(
+                                    style: GoogleFonts.plusJakartaSans(
                                         fontSize: 44, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 15, height: 1.0)),
                               ),
                             ],
@@ -218,7 +231,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                               const Icon(Icons.shield_moon_rounded, size: 13, color: Color(0xFF93C5FD)),
                               const SizedBox(width: 8),
                               Text('S U P E R V I S O R',
-                                  style: GoogleFonts.poppins(
+                                  style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF93C5FD), letterSpacing: 4)),
                             ],
                           ),
@@ -232,9 +245,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             _dotsLoader(),
                             const SizedBox(height: 20),
                             Text('Connecting to fleet control…',
-                                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF475569), letterSpacing: 0.5)),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF475569), letterSpacing: 0.5)),
                             const SizedBox(height: 8),
-                            Text('v0.1.0', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF334155))),
+                            Text('v0.1.0', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF334155))),
                           ],
                         ),
                       ),

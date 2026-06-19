@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:supervisor_proximity/controllers/fleet_controller.dart';
+import 'package:supervisor_proximity/services/auth_service.dart';
 import 'package:supervisor_proximity/views/supervisor_shell.dart';
 import 'package:supervisor_proximity/views/theme/app_theme.dart';
 
@@ -12,10 +15,9 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'supervisor@fleet.com');
+  final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
-  bool _remember = true;
   bool _loading = false;
 
   @override
@@ -26,22 +28,39 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _signIn() async {
+    if (!_formKey.currentState!.validate()) return;
+    
     FocusScope.of(context).unfocus();
-    // if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
-    // Simulated auth — replace with a real call to the cloud backend.
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-    _goToApp();
-  }
-
-  void _biometric() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Authenticating with Face ID…'), behavior: SnackBarBehavior.floating),
-    );
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) _goToApp();
-    });
+    
+    try {
+      final auth = AuthService.instance;
+      await auth.login(
+        email: _email.text.trim(),
+        password: _password.text,
+      );
+      
+      if (!mounted) return;
+      
+      // Update FleetController with supervisor name
+      if (auth.fullName != null) {
+        context.read<FleetController>().setSupervisorIdentity(
+          name: auth.fullName,
+          email: auth.email,
+        );
+      }
+      
+      _goToApp();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+    }
   }
 
   void _goToApp() {
@@ -56,121 +75,171 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppTheme.of(context);
     return Scaffold(
-      backgroundColor: colors.surface,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _brand(context),
-                  const SizedBox(height: 28),
-                  Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: AppTheme.cardDecoration(context),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text('Welcome back',
-                              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: colors.textPrimary)),
-                          const SizedBox(height: 2),
-                          Text('Sign in to your fleet control console',
-                              style: GoogleFonts.poppins(fontSize: 12, color: colors.textMuted)),
-                          const SizedBox(height: 22),
-                          _label(context, 'Email or company ID'),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _email,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: _input(context, hint: 'you@company.com', icon: Icons.alternate_email_rounded),
-                            validator: (v) => (v == null || v.trim().length < 3) ? 'Enter your email or company ID' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _label(context, 'Password'),
-                              GestureDetector(
-                                onTap: () => _forgot(context),
-                                child: Text('Forgot?',
-                                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _password,
-                            obscureText: _obscure,
-                            decoration: _input(
-                              context,
-                              hint: '••••••••',
-                              icon: Icons.lock_outline_rounded,
-                              suffix: IconButton(
-                                icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    size: 19, color: colors.textMuted),
-                                onPressed: () => setState(() => _obscure = !_obscure),
-                              ),
+      body: Container(
+        width: double.infinity,
+
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/login_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+
+
+                  children: [
+
+                    _brand(context),
+
+                    // White login card
+                    Padding(
+                      padding: const EdgeInsets.only(top: 108.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(32),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
-                            validator: (v) => (v == null || v.length < 4) ? 'Password must be at least 4 characters' : null,
-                            onFieldSubmitted: (_) => _signIn(),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: Checkbox(
-                                  value: _remember,
-                                  onChanged: (v) => setState(() => _remember = v ?? false),
-                                  activeColor: AppTheme.primary,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              Text(
+                                'Welcome back',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Text('Keep me signed in',
-                                  style: GoogleFonts.poppins(fontSize: 12, color: colors.textSecondary)),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Sign in to your fleet control console',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              _label('EMAIL'),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _email,
+                                keyboardType: TextInputType.emailAddress,
+                                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF1E293B)),
+                                decoration: _input(
+                                  context,
+                                  hint: 'supervisor@proximity.com',
+                                  icon: Icons.mail_outline_rounded,
+                                ),
+                                validator: (v) => (v == null || v.trim().length < 3) ? 'Enter your email' : null,
+                              ),
+                              const SizedBox(height: 20),
+                              _label('PASSWORD'),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _password,
+                                obscureText: _obscure,
+                                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF1E293B)),
+                                decoration: _input(
+                                  context,
+                                  hint: 'Password',
+                                  icon: Icons.lock_outline_rounded,
+                                  suffix: IconButton(
+                                    icon: Icon(
+                                      _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                      size: 20,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                    onPressed: () => setState(() => _obscure = !_obscure),
+                                  ),
+                                ),
+                                validator: (v) => (v == null || v.length < 4) ? 'Password must be at least 4 characters' : null,
+                                onFieldSubmitted: (_) => _signIn(),
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () => _forgot(context),
+                                  child: Text(
+                                    'Forgot Password?',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF2B72F5),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              _signInButton(context),
+                              const SizedBox(height: 24),
+                              // Feature Row: Secure | AI Monitoring | Privacy First
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _featureItem(Icons.verified_user_outlined, 'Secure'),
+                                  _divider(),
+                                  _featureItem(Icons.videocam_outlined, 'AI Monitoring'),
+                                  _divider(),
+                                  _featureItem(Icons.lock_outline_rounded, 'Privacy First'),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              // Support Footer
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Need help? ',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {},
+                                    child: Text(
+                                      'Contact Support',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF2B72F5),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.headset_mic_outlined,
+                                    size: 14,
+                                    color: Color(0xFF2B72F5),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 18),
-                          _signInButton(context),
-                          const SizedBox(height: 16),
-                          // _orDivider(context),
-                          // const SizedBox(height: 16),
-                          // OutlinedButton.icon(
-                          //   onPressed: _loading ? null : _biometric,
-                          //   icon: const Icon(Icons.face_rounded, size: 19),
-                          //   label: const Text('Sign in with biometrics'),
-                          //   style: OutlinedButton.styleFrom(
-                          //     foregroundColor: colors.textPrimary,
-                          //     side: BorderSide(color: colors.cardBorder),
-                          //     padding: const EdgeInsets.symmetric(vertical: 14),
-                          //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          //   ),
-                          // ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.verified_user_rounded, size: 13, color: colors.textMuted),
-                      const SizedBox(width: 6),
-                      Text('MFA-ready · secured by Proximity Guard',
-                          style: GoogleFonts.poppins(fontSize: 10, color: colors.textMuted)),
-                    ],
-                  ),
-                ],
+
+                  ],
+                ),
               ),
             ),
           ),
@@ -180,108 +249,135 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _brand(BuildContext context) {
-    final colors = AppTheme.of(context);
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 66,
-          height: 66,
-          decoration: BoxDecoration(
-            gradient: AppTheme.primaryGradient,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
-          ),
-          child: const Icon(Icons.shield_moon_rounded, color: Colors.white, size: 32),
+        Image.asset(
+          'assets/images/proximity.png',
+width: 300,
+          fit: BoxFit.contain,
         ),
-        const SizedBox(height: 16),
-        Text('Proximity Guard',
-            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: colors.textPrimary)),
-        Text('Supervisor Console',
-            style: GoogleFonts.poppins(fontSize: 12, color: colors.textMuted, letterSpacing: 1)),
+        const SizedBox(height: 8),
+
       ],
     );
   }
 
-  Widget _label(BuildContext context, String text) => Text(text,
-      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.of(context).textSecondary));
+  Widget _label(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF64748B),
+        letterSpacing: 0.5,
+      ),
+    );
+  }
 
   InputDecoration _input(BuildContext context, {required String hint, required IconData icon, Widget? suffix}) {
-    final colors = AppTheme.of(context);
-    OutlineInputBorder border(Color c) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: c));
+    OutlineInputBorder border(Color c) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c, width: 1.0),
+        );
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.poppins(fontSize: 13, color: colors.textMuted),
-      prefixIcon: Icon(icon, size: 19, color: colors.textMuted),
+      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+      prefixIcon: Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
       suffixIcon: suffix,
       filled: true,
-      fillColor: colors.surface,
+      fillColor: Colors.white,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
-      enabledBorder: border(colors.cardBorder),
-      focusedBorder: border(AppTheme.primary),
+      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      enabledBorder: border(const Color(0xFFE2E8F0)),
+      focusedBorder: border(const Color(0xFF2B72F5)),
       errorBorder: border(AppTheme.danger),
       focusedErrorBorder: border(AppTheme.danger),
-      errorStyle: GoogleFonts.poppins(fontSize: 10, color: AppTheme.danger),
+      errorStyle: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppTheme.danger),
     );
   }
 
   Widget _signInButton(BuildContext context) {
     return SizedBox(
-      height: 52,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: _loading ? null : AppTheme.primaryGradient,
-          color: _loading ? AppTheme.primary.withValues(alpha: 0.6) : null,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: _loading
-              ? null
-              : [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _loading ? null : _signIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2B72F5),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
         ),
-        child: ElevatedButton(
-          onPressed: _loading ? null : _signIn,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            disabledBackgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: _loading
-              ? const SizedBox(
-                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-              : Text('Sign in', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-        ),
+        child: _loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Sign in',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
+              ),
       ),
     );
   }
 
-  // Widget _orDivider(BuildContext context) {
-  //   final colors = AppTheme.of(context);
-  //   return Row(
-  //     children: [
-  //       Expanded(child: Divider(color: colors.cardBorder)),
-  //       Padding(
-  //         padding: const EdgeInsets.symmetric(horizontal: 10),
-  //         child: Text('or', style: GoogleFonts.poppins(fontSize: 11, color: colors.textMuted)),
-  //       ),
-  //       Expanded(child: Divider(color: colors.cardBorder)),
-  //     ],
-  //   );
-  // }
+  Widget _featureItem(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF94A3B8)),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            color: const Color(0xFF94A3B8),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _divider() {
+    return Container(
+      height: 14,
+      width: 1,
+      color: const Color(0xFFE2E8F0),
+    );
+  }
 
   void _forgot(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.of(context).card,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Reset password',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
-        content: Text('A reset link will be sent to your registered email. Contact your fleet admin if you no longer have access.',
-            style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textSecondary, height: 1.5)),
+        title: Text(
+          'Reset password',
+          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B)),
+        ),
+        content: Text(
+          'A reset link will be sent to your registered email. Contact your fleet admin if you no longer have access.',
+          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B), height: 1.5),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
@@ -289,7 +385,11 @@ class _LoginViewState extends State<LoginView> {
                 const SnackBar(content: Text('Reset link sent'), behavior: SnackBarBehavior.floating),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, elevation: 0),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2B72F5),
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
             child: const Text('Send link'),
           ),
         ],

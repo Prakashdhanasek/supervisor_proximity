@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supervisor_proximity/views/masterview.dart';
 import '../controllers/fleet_controller.dart';
 import 'theme/app_theme.dart';
 import 'fleet_map_view.dart';
-import 'approvals_view.dart';
 import 'incidents_view.dart';
 import 'scorecards_view.dart';
+import 'configuration_view.dart';
+import '../l10n/app_localizations.dart';
 
 class SupervisorShell extends StatefulWidget {
   const SupervisorShell({super.key});
@@ -20,9 +22,10 @@ class _SupervisorShellState extends State<SupervisorShell> {
 
   static const _pages = [
     FleetMapView(),
-    ApprovalsView(),
     IncidentsView(),
     ScorecardsView(),
+    MasterView(),
+    ConfigurationView(),
   ];
 
   @override
@@ -44,10 +47,16 @@ class _SupervisorShellState extends State<SupervisorShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _tab(0, Icons.map_rounded, 'Fleet'),
-                _tab(1, Icons.verified_user_rounded, 'Approvals', badge: fleet.pendingApprovals.length),
-                _tab(2, Icons.warning_amber_rounded, 'Incidents', badge: fleet.unreviewedIncidents.length),
-                _tab(3, Icons.bar_chart_rounded, 'Drivers'),
+                _tab(0, Icons.map_rounded, AppLocalizations.of(context).translate('fleet_map').split(' ')[0]),
+                _tab(
+                  1,
+                  Icons.warning_amber_rounded,
+                  AppLocalizations.of(context).translate('incidents'),
+                  badge: fleet.unreviewedIncidents.length,
+                ),
+                _tab(2, Icons.bar_chart_rounded, AppLocalizations.of(context).translate('drivers')),
+                _tab(3, Icons.dashboard_customize_rounded, AppLocalizations.of(context).translate('master_enrollment').split(' ')[0]),
+                _tab(4, Icons.settings_rounded, AppLocalizations.of(context).translate('settings')),
               ],
             ),
           ),
@@ -74,27 +83,45 @@ class _SupervisorShellState extends State<SupervisorShell> {
                   Icon(icon, color: color, size: 24),
                   if (badge > 0)
                     Positioned(
-                      top: -5, right: -8,
+                      top: -5,
+                      right: -8,
                       child: Container(
                         padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.danger,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.of(context).card, width: 1.5),
+                          border: Border.all(
+                            color: AppTheme.of(context).card,
+                            width: 1.5,
+                          ),
                         ),
                         child: Center(
-                          child: Text('$badge',
-                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                          child: Text(
+                            '$badge',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                 ],
               ),
               const SizedBox(height: 3),
-              Text(label,
-                  style: GoogleFonts.poppins(
-                      fontSize: 10, fontWeight: active ? FontWeight.w600 : FontWeight.w500, color: color)),
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ),

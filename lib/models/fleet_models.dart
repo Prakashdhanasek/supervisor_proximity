@@ -26,9 +26,11 @@ class FleetVehicle {
   final double routeProgress; // 0..1
   final int safetyScore; // 0..100
   final bool inGeofence;
-  final Offset position; // normalised 0..1 on the map
+  final double? latitude;
+  final double? longitude;
   final double heading; // radians, direction of travel
   final DateTime lastUpdate;
+  final Map<String, dynamic> rawApiData;
 
   const FleetVehicle({
     required this.id,
@@ -40,9 +42,11 @@ class FleetVehicle {
     required this.routeProgress,
     required this.safetyScore,
     required this.inGeofence,
-    required this.position,
+    this.latitude,
+    this.longitude,
     required this.heading,
     required this.lastUpdate,
+    this.rawApiData = const {},
   });
 
   FleetVehicle copyWith({
@@ -51,9 +55,12 @@ class FleetVehicle {
     double? routeProgress,
     int? safetyScore,
     bool? inGeofence,
-    Offset? position,
+    double? latitude,
+    double? longitude,
+    bool clearPosition = false,
     double? heading,
     DateTime? lastUpdate,
+    Map<String, dynamic>? rawApiData,
   }) {
     return FleetVehicle(
       id: id,
@@ -65,9 +72,11 @@ class FleetVehicle {
       routeProgress: routeProgress ?? this.routeProgress,
       safetyScore: safetyScore ?? this.safetyScore,
       inGeofence: inGeofence ?? this.inGeofence,
-      position: position ?? this.position,
+      latitude: clearPosition ? null : (latitude ?? this.latitude),
+      longitude: clearPosition ? null : (longitude ?? this.longitude),
       heading: heading ?? this.heading,
       lastUpdate: lastUpdate ?? this.lastUpdate,
+      rawApiData: rawApiData ?? this.rawApiData,
     );
   }
 }
@@ -118,7 +127,7 @@ class ApprovalRequest {
       );
 }
 
-enum IncidentType { drowsiness, distraction, harshBraking, speeding, geofence, tamper, forwardDistance }
+enum IncidentType { drowsiness, distraction, harshBraking, speeding, geofence, tamper, forwardDistance, tripStart, tripStop }
 
 extension IncidentTypeX on IncidentType {
   String get label => switch (this) {
@@ -129,6 +138,8 @@ extension IncidentTypeX on IncidentType {
         IncidentType.geofence => 'Geofence breach',
         IncidentType.tamper => 'Device tamper',
         IncidentType.forwardDistance => 'Unsafe following',
+        IncidentType.tripStart => 'Trip Start',
+        IncidentType.tripStop => 'Trip Stop',
       };
 }
 
@@ -156,8 +167,13 @@ class FleetIncident {
     required this.timestamp,
     required this.hasVideo,
     required this.location,
+    this.videoUrl,
+    this.snapshotUrl,
     this.reviewState = ReviewState.unreviewed,
   });
+
+  final String? videoUrl;
+  final String? snapshotUrl;
 
   FleetIncident copyWith({ReviewState? reviewState}) => FleetIncident(
         id: id,
@@ -168,34 +184,154 @@ class FleetIncident {
         timestamp: timestamp,
         hasVideo: hasVideo,
         location: location,
+        videoUrl: videoUrl,
+        snapshotUrl: snapshotUrl,
         reviewState: reviewState ?? this.reviewState,
       );
+
+  static FleetIncident? fromJson(Map<String, dynamic> json) {
+    final eventTypeStr = json['eventType'] as String?;
+    
+    IncidentType type;
+    switch (eventTypeStr) {
+      case 'Drowsiness': type = IncidentType.drowsiness; break;
+      case 'Distraction': type = IncidentType.distraction; break;
+      case 'Harsh braking':
+      case 'HarshBraking': type = IncidentType.harshBraking; break;
+      case 'Speeding': type = IncidentType.speeding; break;
+      case 'Geofence': type = IncidentType.geofence; break;
+      case 'Tamper': type = IncidentType.tamper; break;
+      case 'ForwardDistance': type = IncidentType.forwardDistance; break;
+      case 'TripStart': type = IncidentType.tripStart; break;
+      case 'TripStop': type = IncidentType.tripStop; break;
+      default:
+        return null; // Ignore unknown types
+    }
+
+    final riskLevelStr = json['riskLevel'] as String?;
+    IncidentSeverity severity;
+    switch (riskLevelStr) {
+      case 'Low': severity = IncidentSeverity.low; break;
+      case 'Medium': severity = IncidentSeverity.medium; break;
+      case 'High': severity = IncidentSeverity.high; break;
+      case 'Critical': severity = IncidentSeverity.critical; break;
+      default: severity = IncidentSeverity.low; break;
+    }
+
+    final statusStr = json['status'] as String?;
+    ReviewState reviewState;
+    switch (statusStr) {
+      case 'Resolved':
+      case 'Acknowledged': reviewState = ReviewState.resolved; break;
+      case 'Reviewing': reviewState = ReviewState.reviewing; break;
+      default: reviewState = ReviewState.unreviewed; break;
+    }
+
+    final occurredAtStr = json['occurredAt'] as String?;
+    DateTime timestamp = occurredAtStr != null ? DateTime.parse(occurredAtStr) : DateTime.now();
+
+    final videoUrl = json['videoClipUrl'] as String?;
+    final snapshotUrl = json['snapshotUrl'] as String?;
+    final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
+
+    final lat = json['gpsLatitude'];
+    final lng = json['gpsLongitude'];
+    final location = (lat != null && lng != null) ? 'Lat: $lat, Lng: $lng' : 'Unknown location';
+
+    return FleetIncident(
+      id: json['id'] as String? ?? '',
+      vehicleReg: json['vehicleRegistrationNumber'] as String? ?? 'Unknown',
+      driverName: json['driverName'] as String? ?? 'Unknown',
+      type: type,
+      severity: severity,
+      timestamp: timestamp,
+      hasVideo: hasVideo,
+      location: location,
+      videoUrl: videoUrl,
+      snapshotUrl: snapshotUrl,
+      reviewState: reviewState,
+    );
+  }
 }
 
 class DriverScorecard {
   final String id;
   final String name;
   final String vehicleReg;
+  final String projectSite;
+  final int rank;
   final int safetyScore; // 0..100
   final int previousScore; // for trend
+  final String category; // Excellent, Good, Needs Coaching, High Risk
   final int tripsThisWeek;
   final double distanceKm;
   final int incidents;
   final int onTimeRate; // %
   final List<int> last7Days; // sparkline scores
 
+  // Score breakdown
+  final int safeDrivingScore;
+  final int speedComplianceScore;
+  final int fatigueScore;
+  final int distractionScore;
+
+  // Incident breakdown
+  final int criticalIncidents;
+  final int highIncidents;
+  final int mediumIncidents;
+  final int lowIncidents;
+
   const DriverScorecard({
     required this.id,
     required this.name,
     required this.vehicleReg,
+    this.projectSite = '',
+    this.rank = 0,
     required this.safetyScore,
     required this.previousScore,
+    this.category = 'Unknown',
     required this.tripsThisWeek,
     required this.distanceKm,
     required this.incidents,
     required this.onTimeRate,
     required this.last7Days,
+    this.safeDrivingScore = 100,
+    this.speedComplianceScore = 100,
+    this.fatigueScore = 100,
+    this.distractionScore = 100,
+    this.criticalIncidents = 0,
+    this.highIncidents = 0,
+    this.mediumIncidents = 0,
+    this.lowIncidents = 0,
   });
+
+  static DriverScorecard fromJson(Map<String, dynamic> json) {
+    final score = json['score'] as int? ?? 100;
+    final trendDelta = json['trendDelta'] as int? ?? 0;
+    return DriverScorecard(
+      id: json['driverId'] as String? ?? '',
+      name: json['fullName'] as String? ?? 'Unknown',
+      vehicleReg: json['vehicleRegistrationNumber'] as String? ?? '—',
+      projectSite: json['assignedProjectSite'] as String? ?? '',
+      rank: json['rank'] as int? ?? 0,
+      safetyScore: score,
+      previousScore: score - trendDelta,
+      category: json['category'] as String? ?? 'Unknown',
+      tripsThisWeek: 0,
+      distanceKm: 0.0,
+      incidents: json['totalIncidents'] as int? ?? 0,
+      onTimeRate: 100,
+      last7Days: List.generate(7, (_) => score),
+      safeDrivingScore: json['safeDrivingScore'] as int? ?? 100,
+      speedComplianceScore: json['speedComplianceScore'] as int? ?? 100,
+      fatigueScore: json['fatigueScore'] as int? ?? 100,
+      distractionScore: json['distractionScore'] as int? ?? 100,
+      criticalIncidents: json['criticalIncidents'] as int? ?? 0,
+      highIncidents: json['highIncidents'] as int? ?? 0,
+      mediumIncidents: json['mediumIncidents'] as int? ?? 0,
+      lowIncidents: json['lowIncidents'] as int? ?? 0,
+    );
+  }
 
   int get trend => safetyScore - previousScore;
   String get grade {
@@ -206,3 +342,4 @@ class DriverScorecard {
     return 'F';
   }
 }
+

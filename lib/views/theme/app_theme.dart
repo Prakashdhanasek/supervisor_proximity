@@ -53,13 +53,13 @@ class AppTheme {
   static ThemeData _base(Brightness b) {
     final isDark = b == Brightness.dark;
     final text = isDark
-        ? GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme)
-        : GoogleFonts.poppinsTextTheme();
+        ? GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme)
+        : GoogleFonts.plusJakartaSansTextTheme();
     return ThemeData(
       brightness: b,
       primaryColor: primary,
       scaffoldBackgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      fontFamily: GoogleFonts.poppins().fontFamily,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       colorScheme: isDark
           ? const ColorScheme.dark(primary: primary, secondary: primary, surface: Color(0xFF1E293B), error: danger)
           : const ColorScheme.light(primary: primary, secondary: primary, surface: Color(0xFFFFFFFF), error: danger),

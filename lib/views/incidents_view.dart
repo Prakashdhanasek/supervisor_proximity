@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/fleet_controller.dart';
@@ -40,7 +41,7 @@ class _IncidentsViewState extends State<IncidentsView> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Incidents', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: colors.textPrimary)),
+                  Text(AppLocalizations.of(context).translate('incidents'), style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: colors.textPrimary)),
                   Text('${fleet.unreviewedIncidents.length} need review',
                       style: GoogleFonts.poppins(fontSize: 12, color: colors.textMuted)),
                 ]),
@@ -158,7 +159,7 @@ class _IncidentsViewState extends State<IncidentsView> {
             Row(children: [
               const Icon(Icons.check_circle_rounded, size: 16, color: AppTheme.success),
               const SizedBox(width: 6),
-              Text('Resolved',
+              Text(AppLocalizations.of(context).translate('resolved'),
                   style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.success)),
             ])
           else
@@ -168,7 +169,7 @@ class _IncidentsViewState extends State<IncidentsView> {
                   child: OutlinedButton.icon(
                     onPressed: () => _viewEvidence(context, inc),
                     icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
-                    label: const Text('Evidence'),
+                    label: Text(AppLocalizations.of(context).translate('evidence')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: const BorderSide(color: AppTheme.primary),

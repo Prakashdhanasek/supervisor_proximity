@@ -40,6 +40,8 @@ IconData incidentIcon(IncidentType t) => switch (t) {
       IncidentType.geofence => Icons.location_off_rounded,
       IncidentType.tamper => Icons.build_circle_rounded,
       IncidentType.forwardDistance => Icons.swap_horiz_rounded,
+      IncidentType.tripStart => Icons.play_arrow_rounded,
+      IncidentType.tripStop => Icons.stop_rounded,
     };
 
 class StatusChip extends StatelessWidget {
@@ -62,7 +64,7 @@ class StatusChip extends StatelessWidget {
           if (icon != null) ...[Icon(icon, size: 11, color: color), const SizedBox(width: 4)],
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
@@ -92,9 +94,9 @@ class SummaryTile extends StatelessWidget {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary, height: 1)),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary, height: 1)),
           const SizedBox(height: 2),
-          Text(label, style: GoogleFonts.poppins(fontSize: 10, color: AppTheme.of(context).textMuted)),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppTheme.of(context).textMuted)),
         ],
       ),
     );
@@ -113,9 +115,9 @@ class SectionHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
           if (subtitle != null)
-            Text(subtitle!, style: GoogleFonts.poppins(fontSize: 12, color: AppTheme.of(context).textMuted)),
+            Text(subtitle!, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.of(context).textMuted)),
         ],
       ),
     );
