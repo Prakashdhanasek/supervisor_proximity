@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supervisor_proximity/views/masterview.dart';
 import '../controllers/fleet_controller.dart';
 import 'theme/app_theme.dart';
+import 'dashboard_overview_view.dart';
 import 'fleet_map_view.dart';
 import 'incidents_view.dart';
 import 'scorecards_view.dart';
@@ -20,12 +21,13 @@ class SupervisorShell extends StatefulWidget {
 class _SupervisorShellState extends State<SupervisorShell> {
   int _index = 0;
 
-  static const _pages = [
-    FleetMapView(),
-    IncidentsView(),
-    ScorecardsView(),
-    MasterView(),
-    ConfigurationView(),
+  late final List<Widget> _pages = [
+    DashboardOverviewView(onNavigateToMap: () => setState(() => _index = 1)),
+    const FleetMapView(),
+    const IncidentsView(),
+    const ScorecardsView(),
+    const MasterView(),
+    const ConfigurationView(),
   ];
 
   @override
@@ -47,16 +49,37 @@ class _SupervisorShellState extends State<SupervisorShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _tab(0, Icons.map_rounded, AppLocalizations.of(context).translate('fleet_map').split(' ')[0]),
+                _tab(0, Icons.grid_view_rounded, 'Overview'),
                 _tab(
                   1,
+                  Icons.map_rounded,
+                  AppLocalizations.of(
+                    context,
+                  ).translate('fleet_map').split(' ')[0],
+                ),
+                _tab(
+                  2,
                   Icons.warning_amber_rounded,
                   AppLocalizations.of(context).translate('incidents'),
                   badge: fleet.unreviewedIncidents.length,
                 ),
-                _tab(2, Icons.bar_chart_rounded, AppLocalizations.of(context).translate('drivers')),
-                _tab(3, Icons.dashboard_customize_rounded, AppLocalizations.of(context).translate('master_enrollment').split(' ')[0]),
-                _tab(4, Icons.settings_rounded, AppLocalizations.of(context).translate('settings')),
+                _tab(
+                  3,
+                  Icons.bar_chart_rounded,
+                  AppLocalizations.of(context).translate('drivers'),
+                ),
+                _tab(
+                  4,
+                  Icons.dashboard_customize_rounded,
+                  AppLocalizations.of(
+                    context,
+                  ).translate('master_enrollment').split(' ')[0],
+                ),
+                _tab(
+                  5,
+                  Icons.settings_rounded,
+                  AppLocalizations.of(context).translate('settings'),
+                ),
               ],
             ),
           ),
