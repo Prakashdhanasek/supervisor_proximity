@@ -1014,7 +1014,8 @@ class _MasterViewState extends State<MasterView>
           facePhotos.values.fold(0, (s, l) => s + l.length);
 
           return Container(
-            height: MediaQuery.of(ctx).size.height * 0.92,
+            height: MediaQuery.of(ctx).size.height * 0.70
+            ,
             decoration: BoxDecoration(
               color: AppTheme.of(context).card,
               borderRadius: BorderRadius.only(
@@ -1071,10 +1072,10 @@ class _MasterViewState extends State<MasterView>
               ),
 
               // ── Content ──
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+                      bottom: MediaQuery.of(ctx).viewInsets.bottom + 4),
                   child: step == 0
                       ? _buildProfileStep(
                     formKey, nameCtrl, emailCtrl, mobileCtrl,
@@ -1414,26 +1415,26 @@ class _MasterViewState extends State<MasterView>
             Expanded(child: _dropdown('SHIFT', selectedShift, shifts, onShiftChanged)),
           ]),
           const SizedBox(height: 20),
-          _sectionLabel('FACE ENROLLMENT CONDITIONS'),
-          const SizedBox(height: 10),
-          Wrap(
-            children: faceConditions.entries.map((e) {
-              return SizedBox(
-                width: MediaQuery.of(context).size.width / 2 - 30,
-                child: CheckboxListTile(
-                  value: e.value,
-                  onChanged: (v) => onConditionChanged(e.key, v!),
-                  title: Text(e.key, style: GoogleFonts.plusJakartaSans(fontSize: 12)),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  activeColor: const Color(0xFF2B72F5),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 14),
+          // _sectionLabel('FACE ENROLLMENT CONDITIONS'),
+          // const SizedBox(height: 10),
+          // Wrap(
+          //   children: faceConditions.entries.map((e) {
+          //     return SizedBox(
+          //       width: MediaQuery.of(context).size.width / 2 - 30,
+          //       child: CheckboxListTile(
+          //         value: e.value,
+          //         onChanged: (v) => onConditionChanged(e.key, v!),
+          //         title: Text(e.key, style: GoogleFonts.plusJakartaSans(fontSize: 12)),
+          //         controlAffinity: ListTileControlAffinity.leading,
+          //         dense: true,
+          //         contentPadding: EdgeInsets.zero,
+          //         visualDensity: VisualDensity.compact,
+          //         activeColor: const Color(0xFF2B72F5),
+          //       ),
+          //     );
+          //   }).toList(),
+          // ),
+
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1452,7 +1453,6 @@ class _MasterViewState extends State<MasterView>
               ),
             ]),
           ),
-          const SizedBox(height: 20),
         ]),
       ),
     );
@@ -1888,9 +1888,9 @@ class _MasterViewState extends State<MasterView>
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
-            child: SizedBox(
-              height: MediaQuery.of(ctx).size.height * 0.92,
-              child: Column(children: [
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
               // ── Header ──
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
@@ -1934,13 +1934,13 @@ class _MasterViewState extends State<MasterView>
               ),
 
               // ── Form content ──
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
+                  padding: const EdgeInsets.only(
                       left: 20,
                       right: 20,
                       top: 16,
-                      bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+                      bottom: 8),
                   child: Form(
                     key: formKey,
                     child: Column(
@@ -2155,125 +2155,125 @@ class _MasterViewState extends State<MasterView>
                           ],
                           const SizedBox(height: 24),
                           // ── Device Pre-Checks ──
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                  color: allChecked
-                                      ? const Color(0xFF10B981)
-                                      .withOpacity(0.3)
-                                      : const Color(0xFFE2E8F0)),
-                            ),
-                            child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    const Icon(
-                                        Icons.checklist_rtl_rounded,
-                                        size: 16,
-                                        color: Color(0xFF64748B)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                        'DEVICE PRE-CHECKS (CONFIRM BEFORE SAVING)',
-                                        style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                            color:
-                                            const Color(0xFF64748B),
-                                            letterSpacing: 0.5)),
-                                    const Spacer(),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: allChecked
-                                            ? const Color(0xFF10B981)
-                                            .withOpacity(0.1)
-                                            : const Color(0xFFF59E0B)
-                                            .withOpacity(0.1),
-                                        borderRadius:
-                                        BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                          '$checkedCount/${preChecks.length}',
-                                          style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: allChecked
-                                                  ? const Color(
-                                                  0xFF10B981)
-                                                  : const Color(
-                                                  0xFFF59E0B))),
-                                    ),
-                                  ]),
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    children:
-                                    preChecks.entries.map((e) {
-                                      return SizedBox(
-                                        width: (MediaQuery.of(context)
-                                            .size
-                                            .width -
-                                            72) /
-                                            2,
-                                        child: InkWell(
-                                          onTap: () => setSheet(() =>
-                                          preChecks[e.key] =
-                                          !e.value),
-                                          borderRadius:
-                                          BorderRadius.circular(8),
-                                          child: Padding(
-                                            padding:
-                                            const EdgeInsets.symmetric(
-                                                vertical: 6),
-                                            child: Row(children: [
-                                              Container(
-                                                width: 20,
-                                                height: 20,
-                                                decoration: BoxDecoration(
-                                                  color: e.value
-                                                      ? const Color(
-                                                      0xFF2B72F5)
-                                                      : Colors.white,
-                                                  borderRadius:
-                                                  BorderRadius
-                                                      .circular(4),
-                                                  border: Border.all(
-                                                      color: e.value
-                                                          ? const Color(
-                                                          0xFF2B72F5)
-                                                          : const Color(
-                                                          0xFFCBD5E1),
-                                                      width: 1.5),
-                                                ),
-                                                child: e.value
-                                                    ? const Icon(
-                                                    Icons.check,
-                                                    size: 14,
-                                                    color:
-                                                    Colors.white)
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(e.key,
-                                                    style:
-                                                    GoogleFonts.plusJakartaSans(
-                                                        fontSize: 12,
-                                                        color: const Color(
-                                                            0xFF475569))),
-                                              ),
-                                            ]),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ]),
-                          ),
+                          // Container(
+                          //   padding: const EdgeInsets.all(16),
+                          //   decoration: BoxDecoration(
+                          //     color: const Color(0xFFF8FAFC),
+                          //     borderRadius: BorderRadius.circular(14),
+                          //     border: Border.all(
+                          //         color: allChecked
+                          //             ? const Color(0xFF10B981)
+                          //             .withOpacity(0.3)
+                          //             : const Color(0xFFE2E8F0)),
+                          //   ),
+                          //   child: Column(
+                          //       crossAxisAlignment:
+                          //       CrossAxisAlignment.start,
+                          //       children: [
+                          //         Row(children: [
+                          //           const Icon(
+                          //               Icons.checklist_rtl_rounded,
+                          //               size: 16,
+                          //               color: Color(0xFF64748B)),
+                          //           const SizedBox(width: 8),
+                          //           Text(
+                          //               'DEVICE PRE-CHECKS (CONFIRM BEFORE SAVING)',
+                          //               style: GoogleFonts.plusJakartaSans(
+                          //                   fontSize: 9,
+                          //                   fontWeight: FontWeight.w700,
+                          //                   color:
+                          //                   const Color(0xFF64748B),
+                          //                   letterSpacing: 0.5)),
+                          //           const Spacer(),
+                          //           Container(
+                          //             padding: const EdgeInsets.symmetric(
+                          //                 horizontal: 8, vertical: 2),
+                          //             decoration: BoxDecoration(
+                          //               color: allChecked
+                          //                   ? const Color(0xFF10B981)
+                          //                   .withOpacity(0.1)
+                          //                   : const Color(0xFFF59E0B)
+                          //                   .withOpacity(0.1),
+                          //               borderRadius:
+                          //               BorderRadius.circular(6),
+                          //             ),
+                          //             child: Text(
+                          //                 '$checkedCount/${preChecks.length}',
+                          //                 style: GoogleFonts.plusJakartaSans(
+                          //                     fontSize: 10,
+                          //                     fontWeight: FontWeight.w700,
+                          //                     color: allChecked
+                          //                         ? const Color(
+                          //                         0xFF10B981)
+                          //                         : const Color(
+                          //                         0xFFF59E0B))),
+                          //           ),
+                          //         ]),
+                          //         const SizedBox(height: 12),
+                          //         Wrap(
+                          //           children:
+                          //           preChecks.entries.map((e) {
+                          //             return SizedBox(
+                          //               width: (MediaQuery.of(context)
+                          //                   .size
+                          //                   .width -
+                          //                   72) /
+                          //                   2,
+                          //               child: InkWell(
+                          //                 onTap: () => setSheet(() =>
+                          //                 preChecks[e.key] =
+                          //                 !e.value),
+                          //                 borderRadius:
+                          //                 BorderRadius.circular(8),
+                          //                 child: Padding(
+                          //                   padding:
+                          //                   const EdgeInsets.symmetric(
+                          //                       vertical: 6),
+                          //                   child: Row(children: [
+                          //                     Container(
+                          //                       width: 20,
+                          //                       height: 20,
+                          //                       decoration: BoxDecoration(
+                          //                         color: e.value
+                          //                             ? const Color(
+                          //                             0xFF2B72F5)
+                          //                             : Colors.white,
+                          //                         borderRadius:
+                          //                         BorderRadius
+                          //                             .circular(4),
+                          //                         border: Border.all(
+                          //                             color: e.value
+                          //                                 ? const Color(
+                          //                                 0xFF2B72F5)
+                          //                                 : const Color(
+                          //                                 0xFFCBD5E1),
+                          //                             width: 1.5),
+                          //                       ),
+                          //                       child: e.value
+                          //                           ? const Icon(
+                          //                           Icons.check,
+                          //                           size: 14,
+                          //                           color:
+                          //                           Colors.white)
+                          //                           : null,
+                          //                     ),
+                          //                     const SizedBox(width: 8),
+                          //                     Expanded(
+                          //                       child: Text(e.key,
+                          //                           style:
+                          //                           GoogleFonts.plusJakartaSans(
+                          //                               fontSize: 12,
+                          //                               color: const Color(
+                          //                                   0xFF475569))),
+                          //                     ),
+                          //                   ]),
+                          //                 ),
+                          //               ),
+                          //             );
+                          //           }).toList(),
+                          //         ),
+                          //       ]),
+                          // ),
                           const SizedBox(height: 16),
                         ]),
                   ),
@@ -2679,7 +2679,7 @@ class _MasterViewState extends State<MasterView>
                         ),
                       ),
                       
-                      const SizedBox(height: 24),
+
                       
                       // Hardware Details
                       Text('HARDWARE & CONFIG', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
@@ -2725,6 +2725,8 @@ class _MasterViewState extends State<MasterView>
               ),
             ],
           ),
+
+
         );
       },
     );

@@ -163,37 +163,38 @@ class _IncidentsViewState extends State<IncidentsView> {
                   style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.success)),
             ])
           else
-            Row(children: [
-              if (inc.hasVideo) ...[
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _viewEvidence(context, inc),
-                    icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
-                    label: Text(AppLocalizations.of(context).translate('evidence')),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
-                      side: const BorderSide(color: AppTheme.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-              ],
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: () => fleet.setReviewState(inc.id, ReviewState.resolved),
-                  icon: const Icon(Icons.done_all_rounded, size: 16),
-                  label: const Text('Mark resolved'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary, foregroundColor: Colors.white, elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ]),
+            Text("")
+            // Row(children: [
+            //   if (inc.hasVideo) ...[
+            //     Expanded(
+            //       child: OutlinedButton.icon(
+            //         onPressed: () => _viewEvidence(context, inc),
+            //         icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
+            //         label: Text(AppLocalizations.of(context).translate('evidence')),
+            //         style: OutlinedButton.styleFrom(
+            //           foregroundColor: AppTheme.primary,
+            //           side: const BorderSide(color: AppTheme.primary),
+            //           padding: const EdgeInsets.symmetric(vertical: 11),
+            //           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            //         ),
+            //       ),
+            //     ),
+            //     const SizedBox(width: 10),
+            //   ],
+            //   Expanded(
+            //     flex: 2,
+            //     child: ElevatedButton.icon(
+            //       onPressed: () => fleet.setReviewState(inc.id, ReviewState.resolved),
+            //       icon: const Icon(Icons.done_all_rounded, size: 16),
+            //       label: const Text('Mark resolved'),
+            //       style: ElevatedButton.styleFrom(
+            //         backgroundColor: AppTheme.primary, foregroundColor: Colors.white, elevation: 0,
+            //         padding: const EdgeInsets.symmetric(vertical: 11),
+            //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            //       ),
+            //     ),
+            //   ),
+            // ]),
         ],
       ),
     );

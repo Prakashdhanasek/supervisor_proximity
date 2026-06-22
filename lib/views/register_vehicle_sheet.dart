@@ -443,112 +443,112 @@ class _RegisterVehicleSheetState extends State<RegisterVehicleSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.checklist,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'DEVICE PRE-CHECKS (CONFIRM BEFORE SAVING)',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ),
-                        // X/6 badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _checkedCount == 6
-                                ? Colors.green[100]
-                                : Colors.orange[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$_checkedCount/6',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _checkedCount == 6
-                                  ? Colors.green[800]
-                                  : Colors.orange[800],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Select All
-                    Row(
-                      children: [
-                        Checkbox(value: _selectAll, onChanged: _onSelectAll),
-                        const Text(
-                          'Select All',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 8),
-                    _checkTile(
-                      'Front camera operational',
-                      _frontCamera,
-                      (v) => setState(() {
-                        _frontCamera = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
-                    _checkTile(
-                      'Road-facing camera operational',
-                      _roadCamera,
-                      (v) => setState(() {
-                        _roadCamera = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
-                    _checkTile(
-                      'GPS signal confirmed',
-                      _gpsSignal,
-                      (v) => setState(() {
-                        _gpsSignal = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
-                    _checkTile(
-                      'MDM/Kiosk mode active',
-                      _mdmKiosk,
-                      (v) => setState(() {
-                        _mdmKiosk = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
-                    _checkTile(
-                      'App installed & signed',
-                      _appSigned,
-                      (v) => setState(() {
-                        _appSigned = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
-                    _checkTile(
-                      'Mount secure / no tamper',
-                      _mountSecure,
-                      (v) => setState(() {
-                        _mountSecure = v ?? false;
-                        _syncSelectAll();
-                      }),
-                    ),
+                    // Row(
+                    //   children: [
+                    //     const Icon(
+                    //       Icons.checklist,
+                    //       size: 16,
+                    //       color: Colors.grey,
+                    //     ),
+                    //     const SizedBox(width: 6),
+                    //     Expanded(
+                    //       child: Text(
+                    //         'DEVICE PRE-CHECKS (CONFIRM BEFORE SAVING)',
+                    //         style: TextStyle(
+                    //           fontSize: 11,
+                    //           fontWeight: FontWeight.w700,
+                    //           color: Colors.grey[500],
+                    //           letterSpacing: 0.4,
+                    //         ),
+                    //       ),
+                    //     ),
+                    //     // X/6 badge
+                    //     Container(
+                    //       padding: const EdgeInsets.symmetric(
+                    //         horizontal: 8,
+                    //         vertical: 2,
+                    //       ),
+                    //       decoration: BoxDecoration(
+                    //         color: _checkedCount == 6
+                    //             ? Colors.green[100]
+                    //             : Colors.orange[100],
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       child: Text(
+                    //         '$_checkedCount/6',
+                    //         style: TextStyle(
+                    //           fontSize: 12,
+                    //           fontWeight: FontWeight.bold,
+                    //           color: _checkedCount == 6
+                    //               ? Colors.green[800]
+                    //               : Colors.orange[800],
+                    //         ),
+                    //       ),
+                    // //     ),
+                    // //   ],
+                    // // ),
+                    // // Select All
+                    // Row(
+                    //   children: [
+                    //     Checkbox(value: _selectAll, onChanged: _onSelectAll),
+                    //     const Text(
+                    //       'Select All',
+                    //       style: TextStyle(
+                    //         fontWeight: FontWeight.bold,
+                    //         fontSize: 14,
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
+                    // const Divider(height: 8),
+                    // _checkTile(
+                    //   'Front camera operational',
+                    //   _frontCamera,
+                    //   (v) => setState(() {
+                    //     _frontCamera = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
+                    // _checkTile(
+                    //   'Road-facing camera operational',
+                    //   _roadCamera,
+                    //   (v) => setState(() {
+                    //     _roadCamera = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
+                    // _checkTile(
+                    //   'GPS signal confirmed',
+                    //   _gpsSignal,
+                    //   (v) => setState(() {
+                    //     _gpsSignal = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
+                    // _checkTile(
+                    //   'MDM/Kiosk mode active',
+                    //   _mdmKiosk,
+                    //   (v) => setState(() {
+                    //     _mdmKiosk = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
+                    // _checkTile(
+                    //   'App installed & signed',
+                    //   _appSigned,
+                    //   (v) => setState(() {
+                    //     _appSigned = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
+                    // _checkTile(
+                    //   'Mount secure / no tamper',
+                    //   _mountSecure,
+                    //   (v) => setState(() {
+                    //     _mountSecure = v ?? false;
+                    //     _syncSelectAll();
+                    //   }),
+                    // ),
                   ],
                 ),
               ),
