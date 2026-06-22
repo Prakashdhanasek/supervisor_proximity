@@ -9,11 +9,11 @@ enum VehicleStatus { driving, idle, alert, offline }
 
 extension VehicleStatusX on VehicleStatus {
   String get label => switch (this) {
-        VehicleStatus.driving => 'Driving',
-        VehicleStatus.idle => 'Idle',
-        VehicleStatus.alert => 'Alert',
-        VehicleStatus.offline => 'Offline',
-      };
+    VehicleStatus.driving => 'Driving',
+    VehicleStatus.idle => 'Idle',
+    VehicleStatus.alert => 'Alert',
+    VehicleStatus.offline => 'Offline',
+  };
 }
 
 class FleetVehicle {
@@ -85,11 +85,11 @@ enum AuthMethod { face, rfid, pin, mobileOverride }
 
 extension AuthMethodX on AuthMethod {
   String get label => switch (this) {
-        AuthMethod.face => 'Face + liveness',
-        AuthMethod.rfid => 'RFID card',
-        AuthMethod.pin => 'PIN',
-        AuthMethod.mobileOverride => 'Mobile override',
-      };
+    AuthMethod.face => 'Face + liveness',
+    AuthMethod.rfid => 'RFID card',
+    AuthMethod.pin => 'PIN',
+    AuthMethod.mobileOverride => 'Mobile override',
+  };
 }
 
 enum ApprovalStatus { pending, approved, denied }
@@ -116,31 +116,47 @@ class ApprovalRequest {
   });
 
   ApprovalRequest copyWith({ApprovalStatus? status}) => ApprovalRequest(
-        id: id,
-        driverName: driverName,
-        vehicleReg: vehicleReg,
-        method: method,
-        faceConfidence: faceConfidence,
-        driverAssigned: driverAssigned,
-        requestedAt: requestedAt,
-        status: status ?? this.status,
-      );
+    id: id,
+    driverName: driverName,
+    vehicleReg: vehicleReg,
+    method: method,
+    faceConfidence: faceConfidence,
+    driverAssigned: driverAssigned,
+    requestedAt: requestedAt,
+    status: status ?? this.status,
+  );
 }
 
-enum IncidentType { drowsiness, distraction, harshBraking, speeding, geofence, tamper, forwardDistance, tripStart, tripStop }
+enum IncidentType {
+  drowsiness,
+  distraction,
+  harshBraking,
+  speeding,
+  geofence,
+  tamper,
+  forwardDistance,
+  tripStart,
+  tripStop,
+  seatbelt,
+  phoneUsage,
+  unauthorizedDriver,
+}
 
 extension IncidentTypeX on IncidentType {
   String get label => switch (this) {
-        IncidentType.drowsiness => 'Drowsiness',
-        IncidentType.distraction => 'Distraction',
-        IncidentType.harshBraking => 'Harsh braking',
-        IncidentType.speeding => 'Over speed',
-        IncidentType.geofence => 'Geofence breach',
-        IncidentType.tamper => 'Device tamper',
-        IncidentType.forwardDistance => 'Unsafe following',
-        IncidentType.tripStart => 'Trip Start',
-        IncidentType.tripStop => 'Trip Stop',
-      };
+    IncidentType.drowsiness => 'Drowsiness',
+    IncidentType.distraction => 'Distraction',
+    IncidentType.harshBraking => 'Harsh braking',
+    IncidentType.speeding => 'Over speed',
+    IncidentType.geofence => 'Geofence breach',
+    IncidentType.tamper => 'Device tamper',
+    IncidentType.forwardDistance => 'Unsafe following',
+    IncidentType.tripStart => 'Trip Start',
+    IncidentType.tripStop => 'Trip Stop',
+    IncidentType.seatbelt => 'Seatbelt',
+    IncidentType.phoneUsage => 'Phone Usage',
+    IncidentType.unauthorizedDriver => 'Unauthorized Driver',
+  };
 }
 
 enum IncidentSeverity { low, medium, high, critical }
@@ -157,6 +173,13 @@ class FleetIncident {
   final bool hasVideo;
   final String location;
   final ReviewState reviewState;
+  final String? videoUrl;
+  final String? snapshotUrl;
+  final String? deviceImei;
+  final double? vehicleSpeed;
+  final double? confidence;
+  final double? gpsLatitude;
+  final double? gpsLongitude;
 
   const FleetIncident({
     required this.id,
@@ -170,40 +193,74 @@ class FleetIncident {
     this.videoUrl,
     this.snapshotUrl,
     this.reviewState = ReviewState.unreviewed,
+    this.deviceImei,
+    this.vehicleSpeed,
+    this.confidence,
+    this.gpsLatitude,
+    this.gpsLongitude,
   });
 
-  final String? videoUrl;
-  final String? snapshotUrl;
-
   FleetIncident copyWith({ReviewState? reviewState}) => FleetIncident(
-        id: id,
-        vehicleReg: vehicleReg,
-        driverName: driverName,
-        type: type,
-        severity: severity,
-        timestamp: timestamp,
-        hasVideo: hasVideo,
-        location: location,
-        videoUrl: videoUrl,
-        snapshotUrl: snapshotUrl,
-        reviewState: reviewState ?? this.reviewState,
-      );
+    id: id,
+    vehicleReg: vehicleReg,
+    driverName: driverName,
+    type: type,
+    severity: severity,
+    timestamp: timestamp,
+    hasVideo: hasVideo,
+    location: location,
+    videoUrl: videoUrl,
+    snapshotUrl: snapshotUrl,
+    reviewState: reviewState ?? this.reviewState,
+    deviceImei: deviceImei,
+    vehicleSpeed: vehicleSpeed,
+    confidence: confidence,
+    gpsLatitude: gpsLatitude,
+    gpsLongitude: gpsLongitude,
+  );
 
   static FleetIncident? fromJson(Map<String, dynamic> json) {
     final eventTypeStr = json['eventType'] as String?;
-    
+
     IncidentType type;
     switch (eventTypeStr) {
-      case 'Drowsiness': type = IncidentType.drowsiness; break;
-      case 'Distraction': type = IncidentType.distraction; break;
+      case 'Drowsiness':
+        type = IncidentType.drowsiness;
+        break;
+      case 'Distraction':
+        type = IncidentType.distraction;
+        break;
       case 'Harsh braking':
-      case 'HarshBraking': type = IncidentType.harshBraking; break;
-      case 'Speeding': type = IncidentType.speeding; break;
-      case 'Geofence': type = IncidentType.geofence; break;
-      case 'Tamper': type = IncidentType.tamper; break;
-      case 'ForwardDistance': type = IncidentType.forwardDistance; break;
-      case 'TripStart': type = IncidentType.tripStart; break;
-      case 'TripStop': type = IncidentType.tripStop; break;
+      case 'HarshBraking':
+        type = IncidentType.harshBraking;
+        break;
+      case 'Speeding':
+        type = IncidentType.speeding;
+        break;
+      case 'Geofence':
+        type = IncidentType.geofence;
+        break;
+      case 'Tamper':
+        type = IncidentType.tamper;
+        break;
+      case 'ForwardDistance':
+        type = IncidentType.forwardDistance;
+        break;
+      case 'TripStart':
+        type = IncidentType.tripStart;
+        break;
+      case 'TripStop':
+        type = IncidentType.tripStop;
+        break;
+      case 'Seatbelt':
+        type = IncidentType.seatbelt;
+        break;
+      case 'PhoneUsage':
+        type = IncidentType.phoneUsage;
+        break;
+      case 'UnauthorizedDriver':
+        type = IncidentType.unauthorizedDriver;
+        break;
       default:
         return null; // Ignore unknown types
     }
@@ -211,32 +268,75 @@ class FleetIncident {
     final riskLevelStr = json['riskLevel'] as String?;
     IncidentSeverity severity;
     switch (riskLevelStr) {
-      case 'Low': severity = IncidentSeverity.low; break;
-      case 'Medium': severity = IncidentSeverity.medium; break;
-      case 'High': severity = IncidentSeverity.high; break;
-      case 'Critical': severity = IncidentSeverity.critical; break;
-      default: severity = IncidentSeverity.low; break;
+      case 'Low':
+        severity = IncidentSeverity.low;
+        break;
+      case 'Medium':
+        severity = IncidentSeverity.medium;
+        break;
+      case 'High':
+        severity = IncidentSeverity.high;
+        break;
+      case 'Critical':
+        severity = IncidentSeverity.critical;
+        break;
+      default:
+        severity = IncidentSeverity.low;
+        break;
     }
 
     final statusStr = json['status'] as String?;
     ReviewState reviewState;
     switch (statusStr) {
       case 'Resolved':
-      case 'Acknowledged': reviewState = ReviewState.resolved; break;
-      case 'Reviewing': reviewState = ReviewState.reviewing; break;
-      default: reviewState = ReviewState.unreviewed; break;
+      case 'Acknowledged':
+        reviewState = ReviewState.resolved;
+        break;
+      case 'Reviewing':
+        reviewState = ReviewState.reviewing;
+        break;
+      default:
+        reviewState = ReviewState.unreviewed;
+        break;
     }
 
     final occurredAtStr = json['occurredAt'] as String?;
-    DateTime timestamp = occurredAtStr != null ? DateTime.parse(occurredAtStr) : DateTime.now();
+    DateTime timestamp = occurredAtStr != null
+        ? DateTime.parse(occurredAtStr)
+        : DateTime.now();
 
-    final videoUrl = json['videoClipUrl'] as String?;
-    final snapshotUrl = json['snapshotUrl'] as String?;
+    final rawVideoUrl = json['videoClipUrl'] as String?;
+    // videoClipUrl is "string" placeholder when no real video exists
+    const baseUrl = 'https://proximity-driver-api.prod-app.in';
+    final videoUrl =
+        (rawVideoUrl != null &&
+            rawVideoUrl.isNotEmpty &&
+            rawVideoUrl != 'string')
+        ? (rawVideoUrl.startsWith('http')
+              ? rawVideoUrl
+              : '$baseUrl$rawVideoUrl')
+        : null;
+    final rawSnapshotUrl = json['snapshotUrl'] as String?;
+    // snapshotUrl is a relative path — prepend base URL
+    final snapshotUrl = (rawSnapshotUrl != null && rawSnapshotUrl.isNotEmpty)
+        ? (rawSnapshotUrl.startsWith('http')
+              ? rawSnapshotUrl
+              : '$baseUrl$rawSnapshotUrl')
+        : null;
     final hasVideo = videoUrl != null && videoUrl.isNotEmpty;
 
     final lat = json['gpsLatitude'];
     final lng = json['gpsLongitude'];
-    final location = (lat != null && lng != null) ? 'Lat: $lat, Lng: $lng' : 'Unknown location';
+    final latD = lat is num ? lat.toDouble() : null;
+    final lngD = lng is num ? lng.toDouble() : null;
+    final location = (lat != null && lng != null)
+        ? 'Lat: $lat, Lng: $lng'
+        : 'Unknown location';
+
+    final speedRaw = json['vehicleSpeed'] ?? json['speed'];
+    final speed = speedRaw is num ? speedRaw.toDouble() : null;
+    final confRaw = json['aiConfidence'] ?? json['confidence'];
+    final conf = confRaw is num ? confRaw.toDouble() : null;
 
     return FleetIncident(
       id: json['id'] as String? ?? '',
@@ -250,6 +350,12 @@ class FleetIncident {
       videoUrl: videoUrl,
       snapshotUrl: snapshotUrl,
       reviewState: reviewState,
+      deviceImei:
+          json['deviceTabletId'] as String? ?? json['deviceImei'] as String?,
+      vehicleSpeed: speed,
+      confidence: conf,
+      gpsLatitude: latD,
+      gpsLongitude: lngD,
     );
   }
 }
@@ -342,4 +448,3 @@ class DriverScorecard {
     return 'F';
   }
 }
-
