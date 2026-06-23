@@ -1013,17 +1013,18 @@ class _MasterViewState extends State<MasterView>
           final totalPhotos =
           facePhotos.values.fold(0, (s, l) => s + l.length);
 
-          return Container(
-            height: MediaQuery.of(ctx).size.height * 0.70
-            ,
-            decoration: BoxDecoration(
-              color: AppTheme.of(context).card,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+          return SafeArea(
+            child: Container(
+              height: MediaQuery.of(ctx).size.height * 0.70
+              ,
+              decoration: BoxDecoration(
+                color: AppTheme.of(context).card,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
               ),
-            ),
-            child: Column(children: [
+              child: Column(children: [
               // ── Sheet header ──
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
@@ -1211,7 +1212,7 @@ class _MasterViewState extends State<MasterView>
                 ]),
               ),
             ]),
-          );
+          ));
         },
       ),
     );
@@ -1882,16 +1883,17 @@ class _MasterViewState extends State<MasterView>
           final allChecked = preChecks.values.every((v) => v);
           final checkedCount = preChecks.values.where((v) => v).length;
 
-          return Material(
-            color: AppTheme.of(context).card,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-              // ── Header ──
+          return SafeArea(
+            child: Material(
+              color: AppTheme.of(context).card,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                // ── Header ──
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 14, 12, 14),
                 decoration: const BoxDecoration(
@@ -2041,7 +2043,7 @@ class _MasterViewState extends State<MasterView>
                                     : Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF8FAFC),
+                                          color: AppTheme.of(context).isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                                           borderRadius: BorderRadius.circular(12),
                                           border: Border.all(
                                             color: selectedDevice == null
@@ -2395,7 +2397,8 @@ class _MasterViewState extends State<MasterView>
                   ),
                 ]),
               ),
-            ]),
+              ]),
+            ),
           ));
         },
       ),
@@ -2417,9 +2420,9 @@ class _MasterViewState extends State<MasterView>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.of(context).isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppTheme.of(context).cardBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -2477,9 +2480,9 @@ class _MasterViewState extends State<MasterView>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: AppTheme.of(context).isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppTheme.of(context).cardBorder),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
@@ -2509,12 +2512,12 @@ class _MasterViewState extends State<MasterView>
     hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
     prefixIcon: Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
     filled: true,
-    fillColor: const Color(0xFFF8FAFC),
+    fillColor: AppTheme.of(context).isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
     isDense: true,
     contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
     enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        borderSide: BorderSide(color: AppTheme.of(context).cardBorder)),
     focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFF2B72F5), width: 1.5)),

@@ -12,18 +12,18 @@ String timeAgo(DateTime t) {
 }
 
 Color vehicleStatusColor(VehicleStatus s) => switch (s) {
-      VehicleStatus.driving => AppTheme.success,
-      VehicleStatus.idle => AppTheme.warning,
-      VehicleStatus.alert => AppTheme.danger,
-      VehicleStatus.offline => const Color(0xFF94A3B8),
-    };
+  VehicleStatus.driving => AppTheme.success,
+  VehicleStatus.idle => AppTheme.warning,
+  VehicleStatus.alert => AppTheme.danger,
+  VehicleStatus.offline => const Color(0xFF94A3B8),
+};
 
 Color severityColor(IncidentSeverity s) => switch (s) {
-      IncidentSeverity.low => AppTheme.primary,
-      IncidentSeverity.medium => AppTheme.warning,
-      IncidentSeverity.high => AppTheme.danger,
-      IncidentSeverity.critical => const Color(0xFF991B1B),
-    };
+  IncidentSeverity.low => AppTheme.primary,
+  IncidentSeverity.medium => AppTheme.warning,
+  IncidentSeverity.high => AppTheme.danger,
+  IncidentSeverity.critical => const Color(0xFF991B1B),
+};
 
 Color scoreColor(int score) {
   if (score >= 85) return AppTheme.success;
@@ -33,22 +33,30 @@ Color scoreColor(int score) {
 }
 
 IconData incidentIcon(IncidentType t) => switch (t) {
-      IncidentType.drowsiness => Icons.bedtime_rounded,
-      IncidentType.distraction => Icons.phone_android_rounded,
-      IncidentType.harshBraking => Icons.warning_rounded,
-      IncidentType.speeding => Icons.speed_rounded,
-      IncidentType.geofence => Icons.location_off_rounded,
-      IncidentType.tamper => Icons.build_circle_rounded,
-      IncidentType.forwardDistance => Icons.swap_horiz_rounded,
-      IncidentType.tripStart => Icons.play_arrow_rounded,
-      IncidentType.tripStop => Icons.stop_rounded,
-    };
+  IncidentType.drowsiness => Icons.bedtime_rounded,
+  IncidentType.distraction => Icons.phone_android_rounded,
+  IncidentType.harshBraking => Icons.warning_rounded,
+  IncidentType.speeding => Icons.speed_rounded,
+  IncidentType.geofence => Icons.location_off_rounded,
+  IncidentType.tamper => Icons.build_circle_rounded,
+  IncidentType.forwardDistance => Icons.swap_horiz_rounded,
+  IncidentType.tripStart => Icons.play_arrow_rounded,
+  IncidentType.tripStop => Icons.stop_rounded,
+  IncidentType.seatbelt => Icons.airline_seat_recline_normal_rounded,
+  IncidentType.phoneUsage => Icons.phone_in_talk_rounded,
+  IncidentType.unauthorizedDriver => Icons.person_off_rounded,
+};
 
 class StatusChip extends StatelessWidget {
   final String label;
   final Color color;
   final IconData? icon;
-  const StatusChip({super.key, required this.label, required this.color, this.icon});
+  const StatusChip({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +69,17 @@ class StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 11, color: color), const SizedBox(width: 4)],
+          if (icon != null) ...[
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 4),
+          ],
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -77,7 +92,13 @@ class SummaryTile extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
-  const SummaryTile({super.key, required this.icon, required this.value, required this.label, required this.color});
+  const SummaryTile({
+    super.key,
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -90,13 +111,30 @@ class SummaryTile extends StatelessWidget {
           Container(
             width: 34,
             height: 34,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary, height: 1)),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.of(context).textPrimary,
+              height: 1,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppTheme.of(context).textMuted)),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              color: AppTheme.of(context).textMuted,
+            ),
+          ),
         ],
       ),
     );
@@ -115,9 +153,22 @@ class SectionHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.of(context).textPrimary)),
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.of(context).textPrimary,
+            ),
+          ),
           if (subtitle != null)
-            Text(subtitle!, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.of(context).textMuted)),
+            Text(
+              subtitle!,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: AppTheme.of(context).textMuted,
+              ),
+            ),
         ],
       ),
     );
