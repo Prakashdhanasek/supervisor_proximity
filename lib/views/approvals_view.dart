@@ -17,6 +17,7 @@ class _ApprovalsViewState extends State<ApprovalsView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final Set<String> _collapsed = {};
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -35,12 +36,13 @@ class _ApprovalsViewState extends State<ApprovalsView>
   Widget build(BuildContext context) {
     final fleet = context.watch<FleetController>();
     final all = fleet.approvals.toList();
-    final pending =
-        all.where((a) => a.status == ApprovalStatus.pending).toList();
-    final approved =
-        all.where((a) => a.status == ApprovalStatus.approved).toList();
-    final denied =
-        all.where((a) => a.status == ApprovalStatus.denied).toList();
+    final pending = all
+        .where((a) => a.status == ApprovalStatus.pending)
+        .toList();
+    final approved = all
+        .where((a) => a.status == ApprovalStatus.approved)
+        .toList();
+    final denied = all.where((a) => a.status == ApprovalStatus.denied).toList();
 
     List<ApprovalRequest> activeList;
     switch (_tabController.index) {
@@ -57,6 +59,14 @@ class _ApprovalsViewState extends State<ApprovalsView>
         activeList = all;
     }
 
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      activeList = activeList.where((a) {
+        return a.driverName.toLowerCase().contains(_searchQuery) ||
+            a.vehicleReg.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -65,7 +75,12 @@ class _ApprovalsViewState extends State<ApprovalsView>
           _buildHeader(fleet),
 
           // ── Tab bar (white bg, underline style) ─────────────────────
-          _buildTabBar(all.length, pending.length, approved.length, denied.length),
+          _buildTabBar(
+            all.length,
+            pending.length,
+            approved.length,
+            denied.length,
+          ),
 
           // ── Card list ────────────────────────────────────────────────
           Expanded(
@@ -129,7 +144,10 @@ class _ApprovalsViewState extends State<ApprovalsView>
                 ),
               ),
               const Spacer(),
-              _iconBtn(Icons.search_rounded),
+              GestureDetector(
+                onTap: () => _showSearchDialog(context),
+                child: _iconBtn(Icons.search_rounded),
+              ),
               const SizedBox(width: 10),
               _iconBtn(Icons.notifications_none_rounded),
             ],
@@ -140,14 +158,81 @@ class _ApprovalsViewState extends State<ApprovalsView>
   }
 
   Widget _iconBtn(IconData icon) => Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          shape: BoxShape.circle,
+    width: 38,
+    height: 38,
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.2),
+      shape: BoxShape.circle,
+    ),
+    child: Icon(icon, color: Colors.white, size: 20),
+  );
+
+  void _showSearchDialog(BuildContext context) {
+    final controller = TextEditingController(text: _searchQuery);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.of(ctx).viewPadding.bottom + 16,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.of(context).surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: AppTheme.of(context).textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search driver, vehicle...',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: AppTheme.of(context).textMuted,
+                  ),
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      setState(() => _searchQuery = '');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: AppTheme.of(context).cardBorder,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.of(context).card,
+                ),
+                onSubmitted: (v) {
+                  setState(() => _searchQuery = v.toLowerCase());
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      );
+      ),
+    );
+  }
 
   // ────────────────────────────────────────────────────────────────────
   // Tab bar
@@ -168,9 +253,13 @@ class _ApprovalsViewState extends State<ApprovalsView>
             unselectedLabelColor: const Color(0xFF94A3B8),
             dividerColor: const Color(0xFFE2E8F0),
             labelStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 13, fontWeight: FontWeight.bold),
-            unselectedLabelStyle:
-                GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+            unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
             tabs: [
               _tab('All', all),
               _tab('Pending', pending),
@@ -194,9 +283,9 @@ class _ApprovalsViewState extends State<ApprovalsView>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _tabController.index ==
-                        ['All', 'Pending', 'Approved', 'Reject']
-                            .indexOf(label)
+                color:
+                    _tabController.index ==
+                        ['All', 'Pending', 'Approved', 'Reject'].indexOf(label)
                     ? const Color(0xFF2B72F5)
                     : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(10),
@@ -206,9 +295,14 @@ class _ApprovalsViewState extends State<ApprovalsView>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: _tabController.index ==
-                          ['All', 'Pending', 'Approved', 'Reject']
-                              .indexOf(label)
+                  color:
+                      _tabController.index ==
+                          [
+                            'All',
+                            'Pending',
+                            'Approved',
+                            'Reject',
+                          ].indexOf(label)
                       ? Colors.white
                       : const Color(0xFF64748B),
                 ),
@@ -228,18 +322,28 @@ class _ApprovalsViewState extends State<ApprovalsView>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_user_rounded,
-              size: 56, color: const Color(0xFF10B981).withOpacity(0.35)),
+          Icon(
+            Icons.verified_user_rounded,
+            size: 56,
+            color: const Color(0xFF10B981).withOpacity(0.35),
+          ),
           const SizedBox(height: 14),
-          Text('No requests here',
-              style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1E293B))),
+          Text(
+            'No requests here',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('New start requests will appear here',
-              style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12, color: const Color(0xFF94A3B8))),
+          Text(
+            'New start requests will appear here',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: const Color(0xFF94A3B8),
+            ),
+          ),
         ],
       ),
     );
@@ -249,17 +353,23 @@ class _ApprovalsViewState extends State<ApprovalsView>
   // Approval card
   // ────────────────────────────────────────────────────────────────────
   Widget _buildCard(
-      BuildContext context, FleetController fleet, ApprovalRequest a) {
+    BuildContext context,
+    FleetController fleet,
+    ApprovalRequest a,
+  ) {
     final isPending = a.status == ApprovalStatus.pending;
-    final risky = !a.driverAssigned ||
+    final risky =
+        !a.driverAssigned ||
         (a.method == AuthMethod.face && a.faceConfidence < 70);
     final isCollapsed = _collapsed.contains(a.id);
 
     // Avatar
-    final avatarLetter =
-        a.driverName.startsWith('Unknown') ? 'U' : a.driverName[0];
-    final avatarColor =
-        risky ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    final avatarLetter = a.driverName.startsWith('Unknown')
+        ? 'U'
+        : a.driverName[0];
+    final avatarColor = risky
+        ? const Color(0xFFEF4444)
+        : const Color(0xFF10B981);
 
     // Status pill
     final statusLabel = !isPending
@@ -267,8 +377,8 @@ class _ApprovalsViewState extends State<ApprovalsView>
         : (risky ? 'Review' : 'Verified');
     final statusColor = !isPending
         ? (a.status == ApprovalStatus.approved
-            ? const Color(0xFF10B981)
-            : const Color(0xFFEF4444))
+              ? const Color(0xFF10B981)
+              : const Color(0xFFEF4444))
         : (risky ? const Color(0xFFEF4444) : const Color(0xFF10B981));
 
     return Container(
@@ -327,13 +437,14 @@ class _ApprovalsViewState extends State<ApprovalsView>
                 const SizedBox(width: 8),
                 // Status pill
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: statusColor.withOpacity(0.4)),
+                    border: Border.all(color: statusColor.withOpacity(0.4)),
                   ),
                   child: Text(
                     statusLabel,
@@ -379,8 +490,11 @@ class _ApprovalsViewState extends State<ApprovalsView>
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
             child: Row(
               children: [
-                const Icon(Icons.local_shipping_outlined,
-                    size: 13, color: Color(0xFF94A3B8)),
+                const Icon(
+                  Icons.local_shipping_outlined,
+                  size: 13,
+                  color: Color(0xFF94A3B8),
+                ),
                 const SizedBox(width: 5),
                 Text(
                   '${a.vehicleReg}  ·  ${timeAgo(a.requestedAt)}',
@@ -411,10 +525,11 @@ class _ApprovalsViewState extends State<ApprovalsView>
                     ),
                   ),
                   Container(
-                      width: 1,
-                      height: 56,
-                      color: const Color(0xFFE2E8F0),
-                      margin: const EdgeInsets.symmetric(horizontal: 8)),
+                    width: 1,
+                    height: 56,
+                    color: const Color(0xFFE2E8F0),
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
                   // Face match
                   Expanded(
                     child: _metricCol(
@@ -425,16 +540,17 @@ class _ApprovalsViewState extends State<ApprovalsView>
                           : '—',
                       valueColor: a.method == AuthMethod.face
                           ? (a.faceConfidence >= 70
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFEF4444))
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFEF4444))
                           : const Color(0xFF94A3B8),
                     ),
                   ),
                   Container(
-                      width: 1,
-                      height: 56,
-                      color: const Color(0xFFE2E8F0),
-                      margin: const EdgeInsets.symmetric(horizontal: 8)),
+                    width: 1,
+                    height: 56,
+                    color: const Color(0xFFE2E8F0),
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
                   // Assignment
                   Expanded(
                     child: _metricCol(
@@ -455,16 +571,21 @@ class _ApprovalsViewState extends State<ApprovalsView>
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 14, color: Color(0xFFEF4444)),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 14,
+                        color: Color(0xFFEF4444),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -494,8 +615,11 @@ class _ApprovalsViewState extends State<ApprovalsView>
                         height: 46,
                         child: OutlinedButton.icon(
                           onPressed: () => fleet.deny(a.id),
-                          icon: const Icon(Icons.close_rounded,
-                              size: 16, color: Color(0xFFEF4444)),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: Color(0xFFEF4444),
+                          ),
                           label: Text(
                             'Reject',
                             style: GoogleFonts.plusJakartaSans(
@@ -506,9 +630,12 @@ class _ApprovalsViewState extends State<ApprovalsView>
                           ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
-                                color: Color(0xFFEF4444), width: 1.5),
+                              color: Color(0xFFEF4444),
+                              width: 1.5,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -519,8 +646,11 @@ class _ApprovalsViewState extends State<ApprovalsView>
                         height: 46,
                         child: ElevatedButton.icon(
                           onPressed: () => fleet.approve(a.id),
-                          icon: const Icon(Icons.check_rounded,
-                              size: 16, color: Colors.white),
+                          icon: const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           label: Text(
                             'Approve',
                             style: GoogleFonts.plusJakartaSans(
@@ -533,7 +663,8 @@ class _ApprovalsViewState extends State<ApprovalsView>
                             backgroundColor: const Color(0xFF10B981),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -563,9 +694,13 @@ class _ApprovalsViewState extends State<ApprovalsView>
       children: [
         Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
         const SizedBox(height: 6),
-        Text(label,
-            style: GoogleFonts.plusJakartaSans(
-                fontSize: 10, color: const Color(0xFF94A3B8))),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 10,
+            color: const Color(0xFF94A3B8),
+          ),
+        ),
         const SizedBox(height: 2),
         Text(
           value,

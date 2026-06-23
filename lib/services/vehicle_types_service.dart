@@ -17,7 +17,12 @@ class VehicleTypesService {
           .map((e) => VehicleType.fromJson(e))
           .toList();
     }
-    throw Exception('Failed to load vehicle types (${res.statusCode})');
+    String errorMsg = 'Unable to load vehicle types. Please try again.';
+    try {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['message'] != null) errorMsg = body['message'];
+    } catch (_) {}
+    throw Exception(errorMsg);
   }
 
   Future<VehicleType> createVehicleType(String name) async {
@@ -28,7 +33,7 @@ class VehicleTypesService {
     );
     print('POST /api/vehicle-types payload: {"name": "$name"}');
     print('POST /api/vehicle-types response: ${res.statusCode} ${res.body}');
-    
+
     if (res.statusCode == 200 || res.statusCode == 201) {
       // Sometimes APIs return the created object, sometimes just 200.
       // If it returns JSON, parse it.
@@ -40,17 +45,22 @@ class VehicleTypesService {
           // throw or return a dummy.
         }
       }
-      
+
       // Fallback dummy object if API doesn't return the full created object immediately
       return VehicleType(
-        id: DateTime.now().toIso8601String(), 
-        name: name, 
-        isActive: true, 
-        createdAt: DateTime.now(), 
-        updatedAt: DateTime.now()
+        id: DateTime.now().toIso8601String(),
+        name: name,
+        isActive: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
     }
-    throw Exception('Failed to create vehicle type (${res.statusCode}): ${res.body}');
+    String errorMsg = 'Failed to create vehicle type';
+    try {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['message'] != null) errorMsg = body['message'];
+    } catch (_) {}
+    throw Exception(errorMsg);
   }
 
   Future<VehicleType> updateVehicleType(String id, String name) async {
@@ -61,7 +71,7 @@ class VehicleTypesService {
     );
     print('PUT /api/vehicle-types/$id payload: {"id": "$id", "name": "$name"}');
     print('PUT /api/vehicle-types/$id response: ${res.statusCode} ${res.body}');
-    
+
     if (res.statusCode == 200 || res.statusCode == 204) {
       if (res.body.isNotEmpty) {
         try {
@@ -69,14 +79,14 @@ class VehicleTypesService {
         } catch (_) {}
       }
       return VehicleType(
-        id: id, 
-        name: name, 
-        isActive: true, 
-        createdAt: DateTime.now(), 
-        updatedAt: DateTime.now()
+        id: id,
+        name: name,
+        isActive: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
     }
-    
+
     // Fallback if the API doesn't support /{id} but uses /vehicle-types directly
     if (res.statusCode == 404 || res.statusCode == 405) {
       print('PUT to /$id failed, trying base endpoint');
@@ -86,7 +96,9 @@ class VehicleTypesService {
         body: jsonEncode({'id': id, 'name': name}),
       );
       print('PUT /api/vehicle-types payload: {"id": "$id", "name": "$name"}');
-      print('PUT /api/vehicle-types response: ${fallbackRes.statusCode} ${fallbackRes.body}');
+      print(
+        'PUT /api/vehicle-types response: ${fallbackRes.statusCode} ${fallbackRes.body}',
+      );
       if (fallbackRes.statusCode == 200 || fallbackRes.statusCode == 204) {
         if (fallbackRes.body.isNotEmpty) {
           try {
@@ -94,17 +106,27 @@ class VehicleTypesService {
           } catch (_) {}
         }
         return VehicleType(
-          id: id, 
-          name: name, 
-          isActive: true, 
-          createdAt: DateTime.now(), 
-          updatedAt: DateTime.now()
+          id: id,
+          name: name,
+          isActive: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         );
       }
-      throw Exception('Failed to update vehicle type (${fallbackRes.statusCode}): ${fallbackRes.body}');
+      String errorMsg = 'Failed to update vehicle type';
+      try {
+        final body = jsonDecode(fallbackRes.body);
+        if (body is Map && body['message'] != null) errorMsg = body['message'];
+      } catch (_) {}
+      throw Exception(errorMsg);
     }
 
-    throw Exception('Failed to update vehicle type (${res.statusCode}): ${res.body}');
+    String errorMsg = 'Failed to update vehicle type';
+    try {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['message'] != null) errorMsg = body['message'];
+    } catch (_) {}
+    throw Exception(errorMsg);
   }
 
   Future<void> updateVehicleTypeStatus(String id, bool isActive) async {
@@ -114,12 +136,14 @@ class VehicleTypesService {
       body: jsonEncode({'isActive': isActive}),
     );
     print('PUT /api/vehicle-types/$id/status payload: {"isActive": $isActive}');
-    print('PUT /api/vehicle-types/$id/status response: ${res.statusCode} ${res.body}');
-    
+    print(
+      'PUT /api/vehicle-types/$id/status response: ${res.statusCode} ${res.body}',
+    );
+
     if (res.statusCode == 200 || res.statusCode == 204) {
       return;
     }
-    
+
     // Fallback to PATCH if PUT fails with 405 Method Not Allowed
     if (res.statusCode == 405) {
       final patchRes = await http.patch(
@@ -127,13 +151,26 @@ class VehicleTypesService {
         headers: AuthService.instance.authJsonHeaders,
         body: jsonEncode({'isActive': isActive}),
       );
-      print('PATCH /api/vehicle-types/$id/status response: ${patchRes.statusCode} ${patchRes.body}');
+      print(
+        'PATCH /api/vehicle-types/$id/status response: ${patchRes.statusCode} ${patchRes.body}',
+      );
       if (patchRes.statusCode == 200 || patchRes.statusCode == 204) {
         return;
       }
-      throw Exception('Failed to update status (${patchRes.statusCode}): ${patchRes.body}');
+      String errorMsg = 'Failed to update status';
+      try {
+        final body = jsonDecode(patchRes.body);
+        if (body is Map && body['message'] != null) errorMsg = body['message'];
+      } catch (_) {}
+      throw Exception(errorMsg);
     }
 
-    throw Exception('Failed to update status (${res.statusCode}): ${res.body}');
+    String statusErrMsg = 'Failed to update status';
+    try {
+      final body = jsonDecode(res.body);
+      if (body is Map && body['message'] != null)
+        statusErrMsg = body['message'];
+    } catch (_) {}
+    throw Exception(statusErrMsg);
   }
 }

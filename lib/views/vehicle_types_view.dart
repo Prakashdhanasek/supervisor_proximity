@@ -55,9 +55,7 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
         icon: const Icon(Icons.add),
         label: Text(
           'Add Vehicle Type',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
         ),
       ),
       body: Stack(
@@ -101,14 +99,21 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
 
                 // Table Container
                 Expanded(
-                  child: controller.error != null && controller.vehicleTypes.isEmpty
+                  child:
+                      controller.error != null &&
+                          controller.vehicleTypes.isEmpty
                       ? Center(
                           child: Text(
-                            'Error: ${controller.error}',
+                            controller.error!.replaceFirst('Exception: ', ''),
                             style: TextStyle(color: AppTheme.danger),
                           ),
                         )
-                      : _buildList(context, controller.vehicleTypes, colors, isDark),
+                      : _buildList(
+                          context,
+                          controller.vehicleTypes,
+                          colors,
+                          isDark,
+                        ),
                 ),
                 const SizedBox(height: 24),
               ],
@@ -118,9 +123,7 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
             Positioned.fill(
               child: Container(
                 color: colors.surface.withValues(alpha: 0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: const Center(child: CircularProgressIndicator()),
               ),
             ),
         ],
@@ -128,7 +131,12 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<VehicleType> items, AppColors colors, bool isDark) {
+  Widget _buildList(
+    BuildContext context,
+    List<VehicleType> items,
+    AppColors colors,
+    bool isDark,
+  ) {
     if (items.isEmpty) {
       return Center(
         child: Text(
@@ -147,7 +155,10 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
       itemBuilder: (context, index) {
         final item = items[index];
         return Container(
-          decoration: AppTheme.cardDecoration(context, borderColor: colors.cardBorder),
+          decoration: AppTheme.cardDecoration(
+            context,
+            borderColor: colors.cardBorder,
+          ),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,9 +177,14 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: item.isActive ? AppTheme.success.withValues(alpha: 0.1) : colors.surface,
+                      color: item.isActive
+                          ? AppTheme.success.withValues(alpha: 0.1)
+                          : colors.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -178,7 +194,9 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
                           width: 6,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: item.isActive ? AppTheme.success : colors.textMuted,
+                            color: item.isActive
+                                ? AppTheme.success
+                                : colors.textMuted,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -188,7 +206,9 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: item.isActive ? AppTheme.success : colors.textMuted,
+                            color: item.isActive
+                                ? AppTheme.success
+                                : colors.textMuted,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -214,13 +234,16 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => RegisterVehicleTypeDialog(vehicleType: item),
+                          builder: (context) =>
+                              RegisterVehicleTypeDialog(vehicleType: item),
                         );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: colors.textPrimary,
                         side: BorderSide(color: colors.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text('Edit'),
                     ),
@@ -230,24 +253,43 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
                     child: OutlinedButton(
                       onPressed: () async {
                         try {
-                          await context.read<VehicleTypesController>().toggleVehicleTypeStatus(item.id, item.isActive);
+                          await context
+                              .read<VehicleTypesController>()
+                              .toggleVehicleTypeStatus(item.id, item.isActive);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Vehicle type ${item.isActive ? 'deactivated' : 'activated'} successfully')),
+                              SnackBar(
+                                content: Text(
+                                  'Vehicle type ${item.isActive ? 'deactivated' : 'activated'} successfully',
+                                ),
+                              ),
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.danger),
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                ),
+                                backgroundColor: AppTheme.danger,
+                              ),
                             );
                           }
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: item.isActive ? AppTheme.danger : AppTheme.success,
-                        side: BorderSide(color: item.isActive ? AppTheme.danger.withValues(alpha: 0.5) : AppTheme.success.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        foregroundColor: item.isActive
+                            ? AppTheme.danger
+                            : AppTheme.success,
+                        side: BorderSide(
+                          color: item.isActive
+                              ? AppTheme.danger.withValues(alpha: 0.5)
+                              : AppTheme.success.withValues(alpha: 0.5),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: Text(item.isActive ? 'Deactivate' : 'Activate'),
                     ),

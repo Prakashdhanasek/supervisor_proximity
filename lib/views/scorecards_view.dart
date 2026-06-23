@@ -17,6 +17,7 @@ class ScorecardsView extends StatefulWidget {
 class _ScorecardsViewState extends State<ScorecardsView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -49,14 +50,23 @@ class _ScorecardsViewState extends State<ScorecardsView>
         filtered = allCards.where((d) => d.grade == 'C').toList();
         break;
       case 4:
-        filtered = allCards.where((d) => d.grade == 'D' || d.grade == 'F').toList();
+        filtered = allCards
+            .where((d) => d.grade == 'D' || d.grade == 'F')
+            .toList();
         break;
       default:
         filtered = allCards;
     }
 
-    int countGrade(String g) =>
-        allCards.where((d) => d.grade == g).length;
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((d) {
+        return d.name.toLowerCase().contains(_searchQuery) ||
+            d.vehicleReg.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+
+    int countGrade(String g) => allCards.where((d) => d.grade == g).length;
 
     return Scaffold(
       backgroundColor: AppTheme.of(context).surface,
@@ -66,8 +76,13 @@ class _ScorecardsViewState extends State<ScorecardsView>
           _buildHeader(fleet),
 
           // ── Tab bar ─────────────────────────────────────────────────
-          _buildTabBar(allCards.length, countGrade('A'), countGrade('B'), countGrade('C'),
-              allCards.where((d) => d.grade == 'D' || d.grade == 'F').length),
+          _buildTabBar(
+            allCards.length,
+            countGrade('A'),
+            countGrade('B'),
+            countGrade('C'),
+            allCards.where((d) => d.grade == 'D' || d.grade == 'F').length,
+          ),
 
           // ── Cards ───────────────────────────────────────────────────
           Expanded(
@@ -120,7 +135,8 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 ),
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context).translate('driver_performance'),
+              Text(
+                AppLocalizations.of(context).translate('driver_performance'),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -128,7 +144,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 ),
               ),
               const Spacer(),
-              _iconBtn(Icons.search_rounded),
+              GestureDetector(
+                onTap: () => _showSearchDialog(context),
+                child: _iconBtn(Icons.search_rounded),
+              ),
               const SizedBox(width: 10),
               _iconBtn(Icons.notifications_none_rounded),
             ],
@@ -139,14 +158,81 @@ class _ScorecardsViewState extends State<ScorecardsView>
   }
 
   Widget _iconBtn(IconData icon) => Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          shape: BoxShape.circle,
+    width: 38,
+    height: 38,
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.2),
+      shape: BoxShape.circle,
+    ),
+    child: Icon(icon, color: Colors.white, size: 20),
+  );
+
+  void _showSearchDialog(BuildContext context) {
+    final controller = TextEditingController(text: _searchQuery);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.of(ctx).viewPadding.bottom + 16,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.of(context).surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: AppTheme.of(context).textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search driver, vehicle...',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    color: AppTheme.of(context).textMuted,
+                  ),
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      setState(() => _searchQuery = '');
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: AppTheme.of(context).cardBorder,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.of(context).card,
+                ),
+                onSubmitted: (v) {
+                  setState(() => _searchQuery = v.toLowerCase());
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      );
+      ),
+    );
+  }
 
   // ────────────────────────────────────────────────────────────────────
   // Tab bar
@@ -163,10 +249,14 @@ class _ScorecardsViewState extends State<ScorecardsView>
         labelColor: const Color(0xFF2B72F5),
         unselectedLabelColor: const Color(0xFF94A3B8),
         dividerColor: const Color(0xFFE2E8F0),
-        labelStyle:
-            GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
-        unselectedLabelStyle:
-            GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
         tabs: [
           _tabItem('All', all, 0),
           _tabItem('Grade A', gradeA, 1),
@@ -179,35 +269,35 @@ class _ScorecardsViewState extends State<ScorecardsView>
   }
 
   Widget _tabItem(String label, int count, int index) => Tab(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label),
-            if (count > 0) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _tabController.index == index
-                      ? const Color(0xFF2B72F5)
-                      : const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: _tabController.index == index
-                        ? Colors.white
-                        : const Color(0xFF64748B),
-                  ),
-                ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label),
+        if (count > 0) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: _tabController.index == index
+                  ? const Color(0xFF2B72F5)
+                  : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: _tabController.index == index
+                    ? Colors.white
+                    : const Color(0xFF64748B),
               ),
-            ],
-          ],
-        ),
-      );
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 
   // ────────────────────────────────────────────────────────────────────
   // Empty state
@@ -217,14 +307,20 @@ class _ScorecardsViewState extends State<ScorecardsView>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.person_off_rounded,
-              size: 56, color: Colors.grey.withValues(alpha: 0.3)),
+          Icon(
+            Icons.person_off_rounded,
+            size: 56,
+            color: Colors.grey.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 14),
-          Text(AppLocalizations.of(context).translate('no_drivers_grade'),
-              style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.of(context).textPrimary)),
+          Text(
+            AppLocalizations.of(context).translate('no_drivers_grade'),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.of(context).textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -298,7 +394,9 @@ class _ScorecardsViewState extends State<ScorecardsView>
                         Text(
                           d.projectSite,
                           style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10, color: const Color(0xFF94A3B8)),
+                            fontSize: 10,
+                            color: const Color(0xFF94A3B8),
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                     ],
@@ -306,8 +404,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 ),
                 // Grade pill
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: gradeCol.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -323,8 +423,11 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right_rounded,
-                    color: Color(0xFFCBD5E1), size: 20),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFCBD5E1),
+                  size: 20,
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -344,7 +447,9 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                  up
+                      ? Icons.arrow_upward_rounded
+                      : Icons.arrow_downward_rounded,
                   size: 14,
                   color: trendCol,
                 ),
@@ -360,7 +465,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 const Spacer(),
                 // Category badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: _categoryColor(d.category).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
@@ -368,9 +476,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   child: Text(
                     d.category,
                     style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: _categoryColor(d.category)),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: _categoryColor(d.category),
+                    ),
                   ),
                 ),
               ],
@@ -382,7 +491,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
               height: 56,
               child: CustomPaint(
                 size: const Size(double.infinity, 56),
-                painter: _SparklinePainter(values: d.last7Days, color: scoreCol),
+                painter: _SparklinePainter(
+                  values: d.last7Days,
+                  color: scoreCol,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -395,13 +507,23 @@ class _ScorecardsViewState extends State<ScorecardsView>
               children: [
                 _metricCol(Icons.route_rounded, 'Trips', '${d.tripsThisWeek}'),
                 _vDivider(),
-                _metricCol(Icons.location_on_outlined, 'Distance',
-                    '${d.distanceKm.toInt()} km'),
+                _metricCol(
+                  Icons.location_on_outlined,
+                  'Distance',
+                  '${d.distanceKm.toInt()} km',
+                ),
                 _vDivider(),
-                _metricCol(Icons.warning_amber_outlined, 'Incidents',
-                    '${d.incidents}'),
+                _metricCol(
+                  Icons.warning_amber_outlined,
+                  'Incidents',
+                  '${d.incidents}',
+                ),
                 _vDivider(),
-                _metricCol(Icons.access_time_rounded, 'On-time', '${d.onTimeRate}%'),
+                _metricCol(
+                  Icons.access_time_rounded,
+                  'On-time',
+                  '${d.onTimeRate}%',
+                ),
               ],
             ),
           ],
@@ -417,26 +539,33 @@ class _ScorecardsViewState extends State<ScorecardsView>
         children: [
           Icon(icon, size: 16, color: const Color(0xFF94A3B8)),
           const SizedBox(height: 4),
-          Text(label,
-              style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10, color: const Color(0xFF94A3B8))),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              color: const Color(0xFF94A3B8),
+            ),
+          ),
           const SizedBox(height: 1),
-          Text(value,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.of(context).textPrimary,
-              )),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.of(context).textPrimary,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _vDivider() => Container(
-      width: 1,
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: const Color(0xFFF1F5F9));
+    width: 1,
+    height: 40,
+    margin: const EdgeInsets.symmetric(horizontal: 4),
+    color: const Color(0xFFF1F5F9),
+  );
 
   // ────────────────────────────────────────────────────────────────────
   // Driver Detail Bottom Sheet
@@ -485,35 +614,50 @@ class _ScorecardsViewState extends State<ScorecardsView>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(d.name,
-                            style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.of(context).textPrimary)),
+                        Text(
+                          d.name,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.of(context).textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           [
-                            if (d.vehicleReg.isNotEmpty && d.vehicleReg != '—') d.vehicleReg,
+                            if (d.vehicleReg.isNotEmpty && d.vehicleReg != '—')
+                              d.vehicleReg,
                             if (d.projectSite.isNotEmpty) d.projectSite,
                           ].join(' · '),
                           style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11, color: const Color(0xFF64748B)),
+                            fontSize: 11,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: _categoryColor(d.category).withValues(alpha: 0.12),
+                            color: _categoryColor(
+                              d.category,
+                            ).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: _categoryColor(d.category).withValues(alpha: 0.3)),
+                              color: _categoryColor(
+                                d.category,
+                              ).withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             '● ${d.category.toUpperCase()}',
                             style: GoogleFonts.plusJakartaSans(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: _categoryColor(d.category)),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _categoryColor(d.category),
+                            ),
                           ),
                         ),
                       ],
@@ -543,13 +687,29 @@ class _ScorecardsViewState extends State<ScorecardsView>
               const SizedBox(height: 10),
               Row(
                 children: [
-                  _incidentPill('${d.criticalIncidents} CRITICAL', const Color(0xFF991B1B), const Color(0xFFFFEDED)),
+                  _incidentPill(
+                    '${d.criticalIncidents} CRITICAL',
+                    const Color(0xFF991B1B),
+                    const Color(0xFFFFEDED),
+                  ),
                   const SizedBox(width: 6),
-                  _incidentPill('${d.highIncidents} HIGH', const Color(0xFFB45309), const Color(0xFFFEF3C7)),
+                  _incidentPill(
+                    '${d.highIncidents} HIGH',
+                    const Color(0xFFB45309),
+                    const Color(0xFFFEF3C7),
+                  ),
                   const SizedBox(width: 6),
-                  _incidentPill('${d.mediumIncidents} MEDIUM', const Color(0xFF1E40AF), const Color(0xFFDBEAFE)),
+                  _incidentPill(
+                    '${d.mediumIncidents} MEDIUM',
+                    const Color(0xFF1E40AF),
+                    const Color(0xFFDBEAFE),
+                  ),
                   const SizedBox(width: 6),
-                  _incidentPill('${d.lowIncidents} LOW', const Color(0xFF065F46), const Color(0xFFD1FAE5)),
+                  _incidentPill(
+                    '${d.lowIncidents} LOW',
+                    const Color(0xFF065F46),
+                    const Color(0xFFD1FAE5),
+                  ),
                 ],
               ),
 
@@ -569,13 +729,14 @@ class _ScorecardsViewState extends State<ScorecardsView>
   }
 
   Widget _sectionLabel(String label) => Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF94A3B8),
-            letterSpacing: 0.8),
-      );
+    label,
+    style: GoogleFonts.plusJakartaSans(
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      color: const Color(0xFF94A3B8),
+      letterSpacing: 0.8,
+    ),
+  );
 
   Widget _buildScoreCircle(DriverScorecard d) {
     final col = _scoreColor(d.safetyScore);
@@ -588,15 +749,22 @@ class _ScorecardsViewState extends State<ScorecardsView>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${d.safetyScore}',
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: col,
-                      height: 1)),
-              Text('Score',
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 9, color: const Color(0xFF94A3B8))),
+              Text(
+                '${d.safetyScore}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: col,
+                  height: 1,
+                ),
+              ),
+              Text(
+                'Score',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 9,
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
             ],
           ),
         ),
@@ -612,9 +780,13 @@ class _ScorecardsViewState extends State<ScorecardsView>
         children: [
           Expanded(
             flex: 3,
-            child: Text(label,
-                style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12, color: const Color(0xFF475569))),
+            child: Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                color: const Color(0xFF475569),
+              ),
+            ),
           ),
           Expanded(
             flex: 4,
@@ -635,9 +807,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
               '$score',
               textAlign: TextAlign.right,
               style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: col),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: col,
+              ),
             ),
           ),
         ],
@@ -657,9 +830,10 @@ class _ScorecardsViewState extends State<ScorecardsView>
           label,
           textAlign: TextAlign.center,
           style: GoogleFonts.plusJakartaSans(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: textColor),
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
       ),
     );
@@ -667,7 +841,9 @@ class _ScorecardsViewState extends State<ScorecardsView>
 
   Widget _buildWeeklyBarChart(DriverScorecard d) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
-    final scores = d.last7Days.length >= 7 ? d.last7Days : List.generate(7, (_) => d.safetyScore);
+    final scores = d.last7Days.length >= 7
+        ? d.last7Days
+        : List.generate(7, (_) => d.safetyScore);
     final maxScore = scores.reduce(max).toDouble();
     final col = _scoreColor(d.safetyScore);
     const barAreaHeight = 64.0;
@@ -685,11 +861,14 @@ class _ScorecardsViewState extends State<ScorecardsView>
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('${scores[i]}',
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: isToday ? col : const Color(0xFF94A3B8))),
+                Text(
+                  '${scores[i]}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: isToday ? col : const Color(0xFF94A3B8),
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Container(
                   width: 24,
@@ -700,9 +879,13 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(days[i % days.length],
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 8.5, color: const Color(0xFF94A3B8))),
+                Text(
+                  days[i % days.length],
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8.5,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
               ],
             ),
           );
@@ -719,19 +902,24 @@ class _ScorecardsViewState extends State<ScorecardsView>
   }
 
   Color _gradeColor(String grade) => switch (grade) {
-        'A' => const Color(0xFF10B981),
-        'B' => const Color(0xFF2B72F5),
-        'C' => const Color(0xFFF59E0B),
-        _ => const Color(0xFFEF4444),
-      };
+    'A' => const Color(0xFF10B981),
+    'B' => const Color(0xFF2B72F5),
+    'C' => const Color(0xFFF59E0B),
+    _ => const Color(0xFFEF4444),
+  };
 
   Color _categoryColor(String cat) {
     switch (cat.toLowerCase()) {
-      case 'excellent': return const Color(0xFF10B981);
-      case 'good': return const Color(0xFF2B72F5);
-      case 'needs coaching': return const Color(0xFFF59E0B);
-      case 'high risk': return const Color(0xFFEF4444);
-      default: return const Color(0xFF64748B);
+      case 'excellent':
+        return const Color(0xFF10B981);
+      case 'good':
+        return const Color(0xFF2B72F5);
+      case 'needs coaching':
+        return const Color(0xFFF59E0B);
+      case 'high risk':
+        return const Color(0xFFEF4444);
+      default:
+        return const Color(0xFF64748B);
     }
   }
 }
@@ -752,12 +940,13 @@ class _ScoreCirclePainter extends CustomPainter {
     final sweepAngle = 2 * pi * (score / 100);
 
     canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = const Color(0xFFF1F5F9)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 8);
+      center,
+      radius,
+      Paint()
+        ..color = const Color(0xFFF1F5F9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8,
+    );
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
@@ -791,10 +980,11 @@ class _SparklinePainter extends CustomPainter {
     const minV = 40.0, maxV = 100.0;
     final dx = size.width / (values.length - 1);
     double yFor(int v) =>
-        size.height - ((v - minV) / (maxV - minV)).clamp(0.0, 1.0) * size.height;
+        size.height -
+        ((v - minV) / (maxV - minV)).clamp(0.0, 1.0) * size.height;
 
     final points = <Offset>[
-      for (var i = 0; i < values.length; i++) Offset(i * dx, yFor(values[i]))
+      for (var i = 0; i < values.length; i++) Offset(i * dx, yFor(values[i])),
     ];
 
     final path = Path()..moveTo(points.first.dx, points.first.dy);
@@ -814,7 +1004,10 @@ class _SparklinePainter extends CustomPainter {
       fill,
       Paint()
         ..shader = LinearGradient(
-          colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.02)],
+          colors: [
+            color.withValues(alpha: 0.25),
+            color.withValues(alpha: 0.02),
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),

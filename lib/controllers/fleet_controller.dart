@@ -101,6 +101,11 @@ class FleetController extends ChangeNotifier {
     if (email != null && email.trim().isNotEmpty)
       _supervisorEmail = email.trim();
     notifyListeners();
+    // Re-fetch all data now that auth token is available
+    fetchVehicles();
+    fetchApiDrivers();
+    fetchIncidents();
+    fetchScorecards();
   }
 
   void setSupervisorName(String name) => setSupervisorIdentity(name: name);
@@ -348,7 +353,7 @@ class FleetController extends ChangeNotifier {
               longitude: lng,
               clearPosition: clearPos,
               lastUpdate: DateTime.now(),
-              rawApiData: item,
+              rawApiData: {...v.rawApiData, ...item},
             );
           } else {
             _vehicles.add(

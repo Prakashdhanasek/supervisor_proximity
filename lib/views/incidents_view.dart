@@ -29,11 +29,15 @@ class _IncidentsViewState extends State<IncidentsView> {
     final fleet = context.watch<FleetController>();
     final colors = AppTheme.of(context);
 
-    // Get unique drivers and vehicles for filter dropdowns
-    final allDrivers = fleet.incidents.map((i) => i.driverName).toSet().toList()
-      ..sort();
+    // Get unique drivers from API (full list) and vehicles from fleet list
+    final allDrivers =
+        fleet.apiDrivers
+            .map((d) => (d['fullName'] ?? 'Unknown').toString())
+            .toSet()
+            .toList()
+          ..sort();
     final allVehicles =
-        fleet.incidents.map((i) => i.vehicleReg).toSet().toList()..sort();
+        fleet.vehicles.map((v) => v.registration).toSet().toList()..sort();
 
     // Apply all filters
     final incidents = fleet.incidents.where((i) {
@@ -256,6 +260,8 @@ class _IncidentsViewState extends State<IncidentsView> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
+    final colors = AppTheme.of(context);
+    final isDark = colors.surface != Colors.white;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
@@ -264,10 +270,19 @@ class _IncidentsViewState extends State<IncidentsView> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: AppTheme.primary,
-              surface: AppTheme.of(context).card,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: AppTheme.primary,
+                    onPrimary: Colors.white,
+                    surface: colors.card,
+                    onSurface: colors.textPrimary,
+                  )
+                : ColorScheme.light(
+                    primary: AppTheme.primary,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
           ),
           child: child!,
         );

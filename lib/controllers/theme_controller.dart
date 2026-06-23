@@ -13,21 +13,38 @@ class ThemeController extends ChangeNotifier {
 
   void _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('isDarkMode');
-    if (isDark != null) {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-      notifyListeners();
+    final mode = prefs.getString('themeMode');
+    if (mode == 'dark') {
+      _themeMode = ThemeMode.dark;
+    } else if (mode == 'light') {
+      _themeMode = ThemeMode.light;
+    } else {
+      _themeMode = ThemeMode.system;
     }
+    notifyListeners();
   }
 
   void toggleTheme() async {
-    if (_themeMode == ThemeMode.light || _themeMode == ThemeMode.system) {
-      _themeMode = ThemeMode.dark;
-    } else {
-      _themeMode = ThemeMode.light;
+    switch (_themeMode) {
+      case ThemeMode.system:
+        _themeMode = ThemeMode.dark;
+        break;
+      case ThemeMode.dark:
+        _themeMode = ThemeMode.light;
+        break;
+      case ThemeMode.light:
+        _themeMode = ThemeMode.system;
+        break;
     }
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', _themeMode == ThemeMode.dark);
+    if (_themeMode == ThemeMode.system) {
+      await prefs.remove('themeMode');
+    } else {
+      await prefs.setString(
+        'themeMode',
+        _themeMode == ThemeMode.dark ? 'dark' : 'light',
+      );
+    }
   }
 }

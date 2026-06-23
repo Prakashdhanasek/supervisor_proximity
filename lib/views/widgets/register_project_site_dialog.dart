@@ -11,7 +11,8 @@ class RegisterProjectSiteDialog extends StatefulWidget {
   const RegisterProjectSiteDialog({super.key, this.projectSite});
 
   @override
-  State<RegisterProjectSiteDialog> createState() => _RegisterProjectSiteDialogState();
+  State<RegisterProjectSiteDialog> createState() =>
+      _RegisterProjectSiteDialogState();
 }
 
 class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
@@ -33,21 +34,31 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
     setState(() => _isLoading = true);
     try {
       if (widget.projectSite != null) {
-        await context.read<ProjectSitesController>().updateProjectSite(widget.projectSite!.id, name);
+        await context.read<ProjectSitesController>().updateProjectSite(
+          widget.projectSite!.id,
+          name,
+        );
       } else {
         await context.read<ProjectSitesController>().createProjectSite(name);
       }
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.projectSite != null ? 'Project site updated successfully' : 'Project site created successfully')),
+          SnackBar(
+            content: Text(
+              widget.projectSite != null
+                  ? 'Project site updated successfully'
+                  : 'Project site created successfully',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.danger),
+          SnackBar(content: Text(msg), backgroundColor: AppTheme.danger),
         );
       }
     } finally {
@@ -64,7 +75,7 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.of(context);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: colors.card,
@@ -90,7 +101,9 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.projectSite != null ? 'Edit Project Site' : 'Register Project Site',
+                        widget.projectSite != null
+                            ? 'Edit Project Site'
+                            : 'Register Project Site',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -99,7 +112,9 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        widget.projectSite != null ? 'Update the details for this project site' : 'Add a new project site to the system',
+                        widget.projectSite != null
+                            ? 'Update the details for this project site'
+                            : 'Add a new project site to the system',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           color: colors.textMuted,
@@ -146,7 +161,10 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primary,
+                    width: 2,
+                  ),
                 ),
               ),
               style: GoogleFonts.plusJakartaSans(color: colors.textPrimary),
@@ -158,7 +176,9 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E3A8A), // Dark blue from screenshot
+                      backgroundColor: const Color(
+                        0xFF1E3A8A,
+                      ), // Dark blue from screenshot
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -166,8 +186,15 @@ class _RegisterProjectSiteDialogState extends State<RegisterProjectSiteDialog> {
                       ),
                       elevation: 0,
                     ),
-                    child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : Text(
                             'Save',
                             style: GoogleFonts.plusJakartaSans(

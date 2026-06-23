@@ -12,7 +12,8 @@ class RegisterVehicleTypeDialog extends StatefulWidget {
   const RegisterVehicleTypeDialog({super.key, this.vehicleType});
 
   @override
-  State<RegisterVehicleTypeDialog> createState() => _RegisterVehicleTypeDialogState();
+  State<RegisterVehicleTypeDialog> createState() =>
+      _RegisterVehicleTypeDialogState();
 }
 
 class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
@@ -34,21 +35,31 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
     setState(() => _isLoading = true);
     try {
       if (widget.vehicleType != null) {
-        await context.read<VehicleTypesController>().updateVehicleType(widget.vehicleType!.id, name);
+        await context.read<VehicleTypesController>().updateVehicleType(
+          widget.vehicleType!.id,
+          name,
+        );
       } else {
         await context.read<VehicleTypesController>().createVehicleType(name);
       }
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.vehicleType != null ? 'Vehicle type updated successfully' : 'Vehicle type created successfully')),
+          SnackBar(
+            content: Text(
+              widget.vehicleType != null
+                  ? 'Vehicle type updated successfully'
+                  : 'Vehicle type created successfully',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.danger),
+          SnackBar(content: Text(msg), backgroundColor: AppTheme.danger),
         );
       }
     } finally {
@@ -65,7 +76,7 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = AppTheme.of(context);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: colors.card,
@@ -91,7 +102,9 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.vehicleType != null ? 'Edit Vehicle Type' : 'Register Vehicle Type',
+                        widget.vehicleType != null
+                            ? 'Edit Vehicle Type'
+                            : 'Register Vehicle Type',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -100,7 +113,9 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        widget.vehicleType != null ? 'Update the details for this vehicle type' : 'Add a new vehicle type to the system',
+                        widget.vehicleType != null
+                            ? 'Update the details for this vehicle type'
+                            : 'Add a new vehicle type to the system',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           color: colors.textMuted,
@@ -147,7 +162,10 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primary,
+                    width: 2,
+                  ),
                 ),
               ),
               style: GoogleFonts.plusJakartaSans(color: colors.textPrimary),
@@ -159,7 +177,9 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E3A8A), // Dark blue from screenshot
+                      backgroundColor: const Color(
+                        0xFF1E3A8A,
+                      ), // Dark blue from screenshot
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -167,8 +187,15 @@ class _RegisterVehicleTypeDialogState extends State<RegisterVehicleTypeDialog> {
                       ),
                       elevation: 0,
                     ),
-                    child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : Text(
                             'Save',
                             style: GoogleFonts.plusJakartaSans(
