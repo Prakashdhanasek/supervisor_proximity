@@ -4,7 +4,7 @@ import '../services/project_sites_service.dart';
 
 class ProjectSitesController extends ChangeNotifier {
   final _service = ProjectSitesService();
-  
+
   List<ProjectSite> _projectSites = [];
   ProjectSite? _selectedSite;
   bool _isLoading = false;
@@ -28,9 +28,6 @@ class ProjectSitesController extends ChangeNotifier {
     try {
       _projectSites = await _service.fetchProjectSites();
       _projectSites.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      if (_projectSites.isNotEmpty && _selectedSite == null) {
-        _selectedSite = _projectSites.first;
-      }
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -84,7 +81,7 @@ class ProjectSitesController extends ChangeNotifier {
     try {
       final newStatus = !currentStatus;
       await _service.updateProjectSiteStatus(id, newStatus);
-      
+
       final index = _projectSites.indexWhere((v) => v.id == id);
       if (index != -1) {
         final current = _projectSites[index];

@@ -598,7 +598,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   height: 4,
                   margin: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: AppTheme.of(context).cardBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -631,7 +631,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
                           ].join(' · '),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: const Color(0xFF64748B),
+                            color: AppTheme.of(context).textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -667,7 +667,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
               ),
 
               const SizedBox(height: 20),
-              const Divider(color: Color(0xFFF1F5F9)),
+              Divider(color: AppTheme.of(context).cardBorder),
               const SizedBox(height: 14),
 
               // Score breakdown
@@ -679,7 +679,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
               _buildScoreBar('Distraction', d.distractionScore),
 
               const SizedBox(height: 16),
-              const Divider(color: Color(0xFFF1F5F9)),
+              Divider(color: AppTheme.of(context).cardBorder),
               const SizedBox(height: 14),
 
               // Incident breakdown
@@ -714,7 +714,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
               ),
 
               const SizedBox(height: 16),
-              const Divider(color: Color(0xFFF1F5F9)),
+              Divider(color: AppTheme.of(context).cardBorder),
               const SizedBox(height: 14),
 
               // Weekly trend bar chart
@@ -733,7 +733,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
     style: GoogleFonts.plusJakartaSans(
       fontSize: 10,
       fontWeight: FontWeight.w700,
-      color: const Color(0xFF94A3B8),
+      color: AppTheme.of(context).textMuted,
       letterSpacing: 0.8,
     ),
   );
@@ -762,7 +762,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
                 'Score',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 9,
-                  color: const Color(0xFF94A3B8),
+                  color: AppTheme.of(context).textMuted,
                 ),
               ),
             ],
@@ -784,7 +784,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: const Color(0xFF475569),
+                color: AppTheme.of(context).textSecondary,
               ),
             ),
           ),
@@ -794,7 +794,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: score / 100,
-                backgroundColor: const Color(0xFFF1F5F9),
+                backgroundColor: AppTheme.of(context).cardBorder,
                 valueColor: AlwaysStoppedAnimation<Color>(col),
                 minHeight: 8,
               ),
@@ -819,11 +819,12 @@ class _ScorecardsViewState extends State<ScorecardsView>
   }
 
   Widget _incidentPill(String label, Color textColor, Color bgColor) {
+    final isDark = AppTheme.of(context).isDark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: isDark ? textColor.withOpacity(0.15) : bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -832,7 +833,9 @@ class _ScorecardsViewState extends State<ScorecardsView>
           style: GoogleFonts.plusJakartaSans(
             fontSize: 9,
             fontWeight: FontWeight.bold,
-            color: textColor,
+            color: isDark
+                ? Color.lerp(textColor, Colors.white, 0.4)!
+                : textColor,
           ),
         ),
       ),
@@ -866,7 +869,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: isToday ? col : const Color(0xFF94A3B8),
+                    color: isToday ? col : AppTheme.of(context).textMuted,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -883,7 +886,7 @@ class _ScorecardsViewState extends State<ScorecardsView>
                   days[i % days.length],
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8.5,
-                    color: const Color(0xFF94A3B8),
+                    color: AppTheme.of(context).textMuted,
                   ),
                 ),
               ],

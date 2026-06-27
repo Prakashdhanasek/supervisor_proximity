@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supervisor_proximity/login_screen.dart';
 import 'package:supervisor_proximity/services/app_update_service.dart';
 import 'package:supervisor_proximity/services/auth_service.dart';
@@ -38,10 +39,14 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _pulseAnim;
   late final Animation<double> _rotateAnim;
   late final Animation<double> _particleAnim;
+  String _version = '';
 
   @override
   void initState() {
     super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = 'v${info.version}');
+    });
     _master = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
@@ -348,7 +353,7 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'v0.1.0',
+                              _version,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: const Color(0xFF334155),

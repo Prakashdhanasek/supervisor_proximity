@@ -178,7 +178,7 @@ class _IncidentsViewState extends State<IncidentsView> {
             context,
             icon: Icons.calendar_today_rounded,
             label: _selectedDate != null
-                ? DateFormat('MM/dd/yyyy').format(_selectedDate!)
+                ? DateFormat('dd MMM yyyy').format(_selectedDate!)
                 : 'Date',
             active: _selectedDate != null,
             onTap: () => _pickDate(context),

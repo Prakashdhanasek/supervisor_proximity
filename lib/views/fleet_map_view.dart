@@ -25,6 +25,7 @@ class _FleetMapViewState extends State<FleetMapView> {
   String? _selectedId;
   String _activeFilter = 'All';
   final MapController _mapController = MapController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -40,10 +41,16 @@ class _FleetMapViewState extends State<FleetMapView> {
   @override
   Widget build(BuildContext context) {
     final fleet = context.watch<FleetController>();
+    final sitesCtrl = context.watch<ProjectSitesController>();
     final colors = AppTheme.of(context);
 
     // Apply Filter to list of vehicles
     final filteredVehicles = fleet.vehicles.where((v) {
+      // Project site filter
+      final selectedSite = sitesCtrl.selectedSite;
+      if (selectedSite != null) {
+        if (v.routeName != selectedSite.name) return false;
+      }
       if (_activeFilter == 'All') return true;
       if (_activeFilter == 'Driving') return v.status == VehicleStatus.driving;
       if (_activeFilter == 'Idle') return v.status == VehicleStatus.idle;
@@ -59,6 +66,7 @@ class _FleetMapViewState extends State<FleetMapView> {
           _premiumHeader(context, fleet),
           Expanded(
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               children: [
                 // Live Tracking Map header
@@ -174,7 +182,13 @@ class _FleetMapViewState extends State<FleetMapView> {
                       ],
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        _scrollController.animateTo(
+                          _scrollController.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
                       child: Text(
                         'View all',
                         style: GoogleFonts.plusJakartaSans(
@@ -204,7 +218,32 @@ class _FleetMapViewState extends State<FleetMapView> {
                 const SizedBox(height: 16),
 
                 // Vehicles list filtered
-                ...filteredVehicles.map((v) => _vehicleCard(context, v)),
+                if (filteredVehicles.isEmpty && sitesCtrl.selectedSite != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.local_shipping_outlined,
+                            size: 48,
+                            color: colors.textMuted,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No fleets available for ${sitesCtrl.selectedSite!.name}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              color: colors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredVehicles.map((v) => _vehicleCard(context, v)),
                 const SizedBox(height: 30),
               ],
             ),
@@ -452,7 +491,11 @@ class _FleetMapViewState extends State<FleetMapView> {
                         color: colors.textPrimary,
                       ),
                       onChanged: (String? newId) {
-                        if (newId != null) {
+                        if (newId == null || newId == '__all__') {
+                          context
+                              .read<ProjectSitesController>()
+                              .setSelectedSite(null);
+                        } else {
                           final site = activeSites.firstWhere(
                             (s) => s.id == newId,
                           );
@@ -461,12 +504,18 @@ class _FleetMapViewState extends State<FleetMapView> {
                               .setSelectedSite(site);
                         }
                       },
-                      items: activeSites.map((site) {
-                        return DropdownMenuItem<String>(
-                          value: site.id,
-                          child: Text(site.name),
-                        );
-                      }).toList(),
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: '__all__',
+                          child: Text('All Sites'),
+                        ),
+                        ...activeSites.map((site) {
+                          return DropdownMenuItem<String>(
+                            value: site.id,
+                            child: Text(site.name),
+                          );
+                        }),
+                      ],
                     ),
                   ),
           ),
@@ -625,6 +674,7 @@ class _FleetMapViewState extends State<FleetMapView> {
   Widget _vehicleCard(BuildContext context, FleetVehicle v) {
     final statusColor = vehicleStatusColor(v.status);
     final isSel = v.id == _selectedId;
+    final colors = AppTheme.of(context);
 
     return GestureDetector(
       onTap: () {
@@ -635,12 +685,10 @@ class _FleetMapViewState extends State<FleetMapView> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.of(context).card,
+          color: colors.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSel
-                ? const Color(0xFF2B72F5)
-                : AppTheme.of(context).cardBorder,
+            color: isSel ? const Color(0xFF2B72F5) : colors.cardBorder,
             width: 1.5,
           ),
           boxShadow: [
@@ -675,7 +723,7 @@ class _FleetMapViewState extends State<FleetMapView> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E293B),
+                    color: colors.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -704,17 +752,17 @@ class _FleetMapViewState extends State<FleetMapView> {
             // Row 2: Driver icon/name, speedometer/speed
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.person_outline_rounded,
                   size: 14,
-                  color: Color(0xFF94A3B8),
+                  color: colors.textMuted,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   _resolveDriverName(v, context.read<FleetController>()),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: const Color(0xFF64748B),
+                    color: colors.textSecondary,
                   ),
                 ),
                 const Spacer(),
@@ -739,37 +787,37 @@ class _FleetMapViewState extends State<FleetMapView> {
             // Row 3: Route path details
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.location_on_outlined,
                   size: 14,
-                  color: Color(0xFF94A3B8),
+                  color: colors.textMuted,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Warehouse',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: const Color(0xFF64748B),
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_rounded,
                   size: 12,
-                  color: Color(0xFF94A3B8),
+                  color: colors.textMuted,
                 ),
                 const SizedBox(width: 6),
-                const Icon(
+                Icon(
                   Icons.location_on_outlined,
                   size: 14,
-                  color: Color(0xFF94A3B8),
+                  color: colors.textMuted,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Delivery Hub',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: const Color(0xFF64748B),
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -815,6 +863,7 @@ class _FleetMapViewState extends State<FleetMapView> {
 
   void _showVehicleBottomSheet(BuildContext context, FleetVehicle v) {
     final statusColor = vehicleStatusColor(v.status);
+    final colors = AppTheme.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -822,7 +871,7 @@ class _FleetMapViewState extends State<FleetMapView> {
       builder: (ctx) {
         return Container(
           decoration: BoxDecoration(
-            color: AppTheme.of(context).surface,
+            color: colors.surface,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(28),
               topRight: Radius.circular(28),
@@ -842,7 +891,7 @@ class _FleetMapViewState extends State<FleetMapView> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
+                  color: colors.cardBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -871,7 +920,7 @@ class _FleetMapViewState extends State<FleetMapView> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1E293B),
+                        color: colors.textPrimary,
                       ),
                     ),
                   ),
@@ -904,14 +953,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                   Icon(
                     Icons.person_outline_rounded,
                     size: 16,
-                    color: const Color(0xFF94A3B8),
+                    color: colors.textMuted,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     v.driverName,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
-                      color: const Color(0xFF64748B),
+                      color: colors.textSecondary,
                     ),
                   ),
                   const Spacer(),
@@ -929,14 +978,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E293B),
+                            color: colors.textPrimary,
                           ),
                         ),
                         TextSpan(
                           text: 'km/h',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: const Color(0xFF94A3B8),
+                            color: colors.textMuted,
                           ),
                         ),
                       ],
@@ -959,14 +1008,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                     'Warehouse',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: const Color(0xFF1E293B),
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
                     size: 14,
-                    color: Color(0xFF94A3B8),
+                    color: colors.textMuted,
                   ),
                   const SizedBox(width: 8),
                   Icon(
@@ -979,7 +1028,7 @@ class _FleetMapViewState extends State<FleetMapView> {
                     'Delivery Hub',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: const Color(0xFF1E293B),
+                      color: colors.textPrimary,
                     ),
                   ),
                 ],
@@ -987,7 +1036,7 @@ class _FleetMapViewState extends State<FleetMapView> {
               const SizedBox(height: 20),
 
               // Divider
-              Divider(color: const Color(0xFFE2E8F0), thickness: 1),
+              Divider(color: colors.cardBorder, thickness: 1),
               const SizedBox(height: 16),
 
               // Row 4: Progress | Safety | Zone
@@ -1000,14 +1049,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                         Icon(
                           Icons.route_rounded,
                           size: 20,
-                          color: const Color(0xFF64748B),
+                          color: colors.textSecondary,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Progress',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: const Color(0xFF94A3B8),
+                            color: colors.textMuted,
                           ),
                         ),
                         Text(
@@ -1015,17 +1064,13 @@ class _FleetMapViewState extends State<FleetMapView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E293B),
+                            color: colors.textPrimary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    height: 50,
-                    width: 1,
-                    color: const Color(0xFFE2E8F0),
-                  ),
+                  Container(height: 50, width: 1, color: colors.cardBorder),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 20),
@@ -1035,14 +1080,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                           Icon(
                             Icons.shield_outlined,
                             size: 20,
-                            color: const Color(0xFF64748B),
+                            color: colors.textSecondary,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Safety',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
-                              color: const Color(0xFF94A3B8),
+                              color: colors.textMuted,
                             ),
                           ),
                           Text(
@@ -1050,18 +1095,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1E293B),
+                              color: colors.textPrimary,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  Container(
-                    height: 50,
-                    width: 1,
-                    color: const Color(0xFFE2E8F0),
-                  ),
+                  Container(height: 50, width: 1, color: colors.cardBorder),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 20),
@@ -1071,14 +1112,14 @@ class _FleetMapViewState extends State<FleetMapView> {
                           Icon(
                             Icons.location_on_outlined,
                             size: 20,
-                            color: const Color(0xFF64748B),
+                            color: colors.textSecondary,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Zone',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
-                              color: const Color(0xFF94A3B8),
+                              color: colors.textMuted,
                             ),
                           ),
                           Text(
@@ -1130,8 +1171,8 @@ class _FleetMapViewState extends State<FleetMapView> {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF2B72F5),
-                          side: const BorderSide(
-                            color: Color(0xFFE2E8F0),
+                          side: BorderSide(
+                            color: colors.cardBorder,
                             width: 1.5,
                           ),
                           shape: RoundedRectangleBorder(
@@ -1170,8 +1211,8 @@ class _FleetMapViewState extends State<FleetMapView> {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF2B72F5),
-                          side: const BorderSide(
-                            color: Color(0xFFE2E8F0),
+                          side: BorderSide(
+                            color: colors.cardBorder,
                             width: 1.5,
                           ),
                           shape: RoundedRectangleBorder(

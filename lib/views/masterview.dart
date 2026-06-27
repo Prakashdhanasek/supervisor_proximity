@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../controllers/fleet_controller.dart';
+import '../controllers/project_sites_controller.dart';
 import '../models/fleet_models.dart';
 import '../models/unassigned_device.dart';
 import '../services/vehicle_register_service.dart';
@@ -1072,6 +1073,7 @@ class _MasterViewState extends State<MasterView>
 
   Widget _vehicleStat(String label, int count, Color color) {
     final isDark = AppTheme.of(context).isDark;
+    final displayColor = isDark ? Color.lerp(color, Colors.white, 0.4)! : color;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1086,14 +1088,14 @@ class _MasterViewState extends State<MasterView>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: color,
+                color: displayColor,
               ),
             ),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
-                color: color.withOpacity(0.8),
+                color: displayColor.withOpacity(0.8),
               ),
             ),
           ],
@@ -1350,18 +1352,17 @@ class _MasterViewState extends State<MasterView>
     final mobileCtrl = TextEditingController();
     final licenseCtrl = TextEditingController();
     DateTime licenseExpiry = DateTime.now().add(const Duration(days: 365));
-    String selectedProject = 'Hyderabad Yard';
+    String? selectedProject;
     String selectedShift = 'Morning (6AM–2PM)';
     String? selectedVehicle;
     int step = 0;
 
-    final projects = [
-      'Hyderabad Yard',
-      'Chennai Metro Site',
-      'Bangalore Depot',
-      'Mumbai Coastal Road',
-      'Pune Material Route',
-    ];
+    final sitesCtrl = context.read<ProjectSitesController>();
+    final projects = sitesCtrl.projectSites
+        .where((s) => s.isActive)
+        .map((s) => s.name)
+        .toList();
+    if (projects.isNotEmpty) selectedProject = projects.first;
     final shifts = [
       'Morning (6AM–2PM)',
       'Afternoon (2PM–10PM)',
@@ -1482,7 +1483,7 @@ class _MasterViewState extends State<MasterView>
                             mobileCtrl,
                             licenseCtrl,
                             licenseExpiry,
-                            selectedProject,
+                            selectedProject ?? '',
                             selectedVehicle,
                             selectedShift,
                             projects,
@@ -1622,7 +1623,7 @@ class _MasterViewState extends State<MasterView>
                                     mobileCtrl,
                                     licenseCtrl,
                                     licenseExpiry,
-                                    selectedProject,
+                                    selectedProject ?? '',
                                     selectedVehicle,
                                     selectedShift,
                                     faceConditions,
@@ -2615,7 +2616,7 @@ class _MasterViewState extends State<MasterView>
                                   children: [
                                     Expanded(
                                       child: _formSection(
-                                        'VEHICLE REGISTRATION NO.',
+                                        'VEHICLE REGISTRATION NO. *',
                                         TextFormField(
                                           controller: regCtrl,
                                           style: GoogleFonts.plusJakartaSans(
@@ -3398,15 +3399,44 @@ class _MasterViewState extends State<MasterView>
     );
   }
 
-  Widget _fieldLabel(String text) => Text(
-    text,
-    style: GoogleFonts.plusJakartaSans(
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFF64748B),
-      letterSpacing: 0.5,
-    ),
-  );
+  Widget _fieldLabel(String text) {
+    if (text.contains('*')) {
+      final parts = text.split('*');
+      return RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: parts[0],
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF64748B),
+                letterSpacing: 0.5,
+              ),
+            ),
+            TextSpan(
+              text: '*',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFEF4444),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Text(
+      text,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF64748B),
+        letterSpacing: 0.5,
+      ),
+    );
+  }
 
   InputDecoration _inputDec(String hint, IconData icon) => InputDecoration(
     hintText: hint,
