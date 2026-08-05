@@ -5,6 +5,7 @@ import '../models/fleet_models.dart';
 import '../services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/common.dart';
+import 'widgets/incident_video_player.dart';
 
 class IncidentDetailView extends StatelessWidget {
   final FleetIncident incident;
@@ -360,18 +361,20 @@ class IncidentDetailView extends StatelessWidget {
             const SizedBox(height: 16),
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: Colors.white70,
-                    size: 56,
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: incident.videoUrl != null
+                    ? IncidentVideoPlayer(videoUrl: incident.videoUrl!)
+                    : Container(
+                        color: Colors.black87,
+                        child: const Center(
+                          child: Icon(
+                            Icons.videocam_off_rounded,
+                            color: Colors.white70,
+                            size: 56,
+                          ),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 14),
