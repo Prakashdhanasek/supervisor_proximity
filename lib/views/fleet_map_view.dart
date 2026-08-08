@@ -63,7 +63,6 @@ class _FleetMapViewState extends State<FleetMapView> {
       backgroundColor: colors.surface,
       body: Column(
         children: [
-          _premiumHeader(context, fleet),
           Expanded(
             child: ListView(
               controller: _scrollController,
@@ -1246,13 +1245,8 @@ class _FleetMapViewState extends State<FleetMapView> {
         driverName != 'unknown' &&
         driverName != 'unassigned') {
       for (final d in fleet.apiDrivers) {
-        final name = (d['driverName'] ?? d['name'] ?? '')
-            .toString()
-            .toLowerCase();
-        if (name == driverName) {
-          final phone =
-              d['mobileNumber'] ?? d['phone'] ?? d['driverPhone'] ?? '';
-          if (phone.toString().isNotEmpty) return phone.toString();
+        if (d.fullName.toLowerCase() == driverName) {
+          if (d.mobileNumber.isNotEmpty) return d.mobileNumber;
         }
       }
     }

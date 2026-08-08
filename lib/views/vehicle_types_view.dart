@@ -43,11 +43,6 @@ class _VehicleTypesViewState extends State<VehicleTypesView> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: colors.surface,
-        iconTheme: IconThemeData(color: colors.textPrimary),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showRegisterDialog,
         backgroundColor: const Color(0xFF1E3A8A), // Dark blue

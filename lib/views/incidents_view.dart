@@ -30,12 +30,8 @@ class _IncidentsViewState extends State<IncidentsView> {
     final colors = AppTheme.of(context);
 
     // Get unique drivers from API (full list) and vehicles from fleet list
-    final allDrivers =
-        fleet.apiDrivers
-            .map((d) => (d['fullName'] ?? 'Unknown').toString())
-            .toSet()
-            .toList()
-          ..sort();
+    final allDrivers = fleet.apiDrivers.map((d) => d.fullName).toSet().toList()
+      ..sort();
     final allVehicles =
         fleet.vehicles.map((v) => v.registration).toSet().toList()..sort();
 

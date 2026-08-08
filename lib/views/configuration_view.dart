@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
+import 'admin_device_management_view.dart';
 import 'vehicle_types_view.dart';
 import 'project_sites_view.dart';
 
@@ -15,18 +16,6 @@ class ConfigurationView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: colors.surface,
-        title: Text(
-          AppLocalizations.of(context).translate('settings'),
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: colors.textPrimary,
-          ),
-        ),
-      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
@@ -34,9 +23,9 @@ class ConfigurationView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              AppLocalizations.of(context)
-                  .translate('configuration_settings')
-                  .toUpperCase(),
+              AppLocalizations.of(
+                context,
+              ).translate('configuration_settings').toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -46,7 +35,7 @@ class ConfigurationView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Vehicle Types
           Material(
             color: isDark ? colors.card : const Color(0xFFEEF2F6),
@@ -58,12 +47,17 @@ class ConfigurationView extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.local_offer_rounded,
-                      color: Color(0xFFFDCB95), // Matching the tag color from image somewhat
+                      color: Color(
+                        0xFFFDCB95,
+                      ), // Matching the tag color from image somewhat
                       size: 24,
                     ),
                     const SizedBox(width: 16),
@@ -80,7 +74,7 @@ class ConfigurationView extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Project / Sites
           Material(
             color: colors.surface,
@@ -92,7 +86,10 @@ class ConfigurationView extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     const Icon(
@@ -103,6 +100,45 @@ class ConfigurationView extends StatelessWidget {
                     const SizedBox(width: 16),
                     Text(
                       AppLocalizations.of(context).translate('project_sites'),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Admins and Devices
+          Material(
+            color: isDark ? colors.card : const Color(0xFFEEF2F6),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminDeviceManagementView(),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.admin_panel_settings_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Admins & Devices',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

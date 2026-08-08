@@ -6,12 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../controllers/fleet_controller.dart';
 import '../controllers/project_sites_controller.dart';
+import '../models/driver.dart';
 import '../models/fleet_models.dart';
 import '../models/unassigned_device.dart';
+import '../services/auth_service.dart';
 import '../services/vehicle_register_service.dart';
 import 'theme/app_theme.dart';
 
 class MasterDriver {
+  final String? driverId;
   final String name;
   final String empId;
   final String email;
@@ -24,11 +27,16 @@ class MasterDriver {
   final String status;
   final String enrollment;
   final String licenseStatus;
+  final String preferredLanguage;
+  final int safetyScore;
   final DateTime enrolledSince;
   final List<String> faceConditions;
   final Map<String, List<File>> facePhotos;
+  final List<String> apiFacePhotoUrls;
+  final List<Map<String, dynamic>> assignedVehicles;
 
   MasterDriver({
+    this.driverId,
     required this.name,
     required this.empId,
     required this.email,
@@ -41,9 +49,13 @@ class MasterDriver {
     this.status = 'ACTIVE',
     this.enrollment = 'ENROLLED',
     this.licenseStatus = 'VALID',
+    this.preferredLanguage = 'English',
+    this.safetyScore = 0,
     DateTime? enrolledSince,
     this.faceConditions = const ['Normal Face'],
     this.facePhotos = const {},
+    this.apiFacePhotoUrls = const [],
+    this.assignedVehicles = const [],
   }) : enrolledSince = enrolledSince ?? DateTime.now();
 
   String get initials {
@@ -53,19 +65,29 @@ class MasterDriver {
   }
 
   int get totalPhotos =>
-      facePhotos.values.fold(0, (sum, list) => sum + list.length);
+      facePhotos.values.fold(0, (sum, list) => sum + list.length) +
+      apiFacePhotoUrls.length;
+
+  String get vehicleDisplay {
+    if (assignedVehicles.isNotEmpty) {
+      return assignedVehicles
+          .map((v) => v['vehicleRegistrationNumber'] ?? 'Unknown')
+          .join(', ');
+    }
+    return vehicle ?? 'Unassigned';
+  }
 }
 
 class MasterView extends StatefulWidget {
-  const MasterView({super.key});
+  final int initialTab;
+
+  const MasterView({super.key, this.initialTab = 0});
   @override
   State<MasterView> createState() => _MasterViewState();
 }
 
-class _MasterViewState extends State<MasterView>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int? _selectedDriverIndex;
+class _MasterViewState extends State<MasterView> {
+  String? _selectedDriverKey;
   final List<MasterDriver> _drivers = [];
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _driverSearchController = TextEditingController();
@@ -74,18 +96,20 @@ class _MasterViewState extends State<MasterView>
   final FocusNode _driverSearchFocus = FocusNode();
   final FocusNode _vehicleSearchFocus = FocusNode();
   String _driverSearchQuery = '';
+  String _driverProjectFilter = 'All Projects';
+  String _driverStatusFilter = 'All Status';
   String _vehicleSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FleetController>().fetchApiDrivers();
+    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _driverSearchController.dispose();
     _vehicleSearchController.dispose();
     _driverSearchFocus.dispose();
@@ -100,206 +124,69 @@ class _MasterViewState extends State<MasterView>
 
     final List<MasterDriver> mappedDrivers = fleet.apiDrivers.map((d) {
       return MasterDriver(
-        name: d['fullName'] ?? 'Unknown',
-        empId: d['id']?.toString().substring(0, 8) ?? 'Unknown',
-        email: d['email'] ?? 'No email',
-        mobile: d['mobileNumber'] ?? 'No mobile',
-        licenseNumber: d['licenseNumber'] ?? 'No license',
-        licenseExpiry: d['licenseExpiry'] != null
-            ? DateTime.tryParse(d['licenseExpiry']) ?? DateTime.now()
-            : DateTime.now(),
-        projectSite: d['assignedProjectSite'] ?? 'Unassigned',
-        vehicle: d['vehicleRegistrationNumber'] ?? 'Unassigned',
-        shift: d['shift'] ?? 'Unassigned',
-        status: d['isActive'] == true ? 'ACTIVE' : 'INACTIVE',
-        enrollment: (d['status'] == null || d['status'] == '')
-            ? 'ENROLLED'
-            : d['status'].toString().toUpperCase(),
-        licenseStatus: 'VALID',
-        enrolledSince: d['createdAt'] != null
-            ? DateTime.tryParse(d['createdAt']) ?? DateTime.now()
-            : DateTime.now(),
-        faceConditions: const [],
+        driverId: d.id,
+        name: d.fullName,
+        empId: d.id.substring(0, 8),
+        email: d.email,
+        mobile: d.mobileNumber,
+        licenseNumber: d.licenseNumber,
+        licenseExpiry: d.licenseExpiry,
+        projectSite: d.assignedProjectSite,
+        vehicle: d.vehicleDisplay,
+        shift: d.shift,
+        status: d.normalizedStatus,
+        enrollment: d.normalizedStatus == 'PENDING' ? 'PENDING' : 'ENROLLED',
+        licenseStatus: _calcLicenseStatus(d.licenseExpiry),
+        preferredLanguage: d.preferredLanguage,
+        safetyScore: 0,
+        enrolledSince: d.createdAt,
+        faceConditions: d.enrolledFaceConditions,
         facePhotos: const {},
+        apiFacePhotoUrls: d.facePhotoUrls,
+        assignedVehicles: d.assignedVehicles
+            .map(
+              (v) => <String, dynamic>{
+                'vehicleId': v.vehicleId,
+                'vehicleRegistrationNumber': v.vehicleRegistrationNumber,
+                'overspeedThreshold': v.overspeedThreshold,
+              },
+            )
+            .toList(),
       );
     }).toList();
 
     final allDrivers = [...mappedDrivers, ..._drivers];
 
+    if (widget.initialTab == 1) {
+      return Scaffold(
+        backgroundColor: AppTheme.of(context).surface,
+        body: vehicles.isEmpty
+            ? _buildEmptyState(
+                icon: Icons.local_shipping_outlined,
+                title: 'No vehicles added',
+                subtitle: 'Add your first vehicle to get started',
+                ctaText: 'Add Vehicle',
+                onAdd: () => _showAddVehicleSheet(context),
+              )
+            : _buildVehicleList(vehicles),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.of(context).surface,
-      body: Column(
-        children: [
-          _buildHeader(fleet, allDrivers),
-          _buildTabBar(allDrivers.length, vehicles.length),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                allDrivers.isEmpty
-                    ? _buildEmptyState(
-                        icon: Icons.person_off_rounded,
-                        title: 'No drivers enrolled',
-                        subtitle: 'Enroll your first driver to get started',
-                        ctaText: 'Enroll Driver',
-                        onAdd: () => _showEnrollDriverSheet(context),
-                      )
-                    : _buildDriverTab(allDrivers),
-                vehicles.isEmpty
-                    ? _buildEmptyState(
-                        icon: Icons.local_shipping_outlined,
-                        title: 'No vehicles added',
-                        subtitle: 'Add your first vehicle to get started',
-                        ctaText: 'Add Vehicle',
-                        onAdd: () => _showAddVehicleSheet(context),
-                      )
-                    : _buildVehicleList(vehicles),
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: fleet.isLoadingDrivers && allDrivers.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : allDrivers.isEmpty
+          ? _buildEmptyState(
+              icon: Icons.person_off_rounded,
+              title: 'No drivers enrolled',
+              subtitle: 'Enroll your first driver to get started',
+              ctaText: 'Enroll Driver',
+              onAdd: () => _showEnrollDriverSheet(context),
+            )
+          : _buildDriverTab(allDrivers),
     );
   }
-
-  Widget _buildHeader(FleetController fleet, List<MasterDriver> drivers) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A4FBA), Color(0xFF3B82F6)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  fleet.supervisorInitials,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Driver Master & Enrollment',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      '${drivers.length} enrolled drivers',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  if (_tabController.index == 0) {
-                    _driverSearchFocus.requestFocus();
-                  } else {
-                    _vehicleSearchFocus.requestFocus();
-                  }
-                },
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.search_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabBar(int driverCount, int vehicleCount) {
-    return Container(
-      color: Colors.white,
-      child: TabBar(
-        controller: _tabController,
-        indicatorColor: const Color(0xFF2B72F5),
-        indicatorWeight: 2.5,
-        labelColor: const Color(0xFF2B72F5),
-        unselectedLabelColor: const Color(0xFF94A3B8),
-        dividerColor: const Color(0xFFE2E8F0),
-        labelStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-        ),
-        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-        tabs: [
-          _tabItem('Drivers', driverCount, 0),
-          _tabItem('Vehicles', vehicleCount, 1),
-        ],
-      ),
-    );
-  }
-
-  Widget _tabItem(String label, int count, int index) => Tab(
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label),
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: _tabController.index == index
-                ? const Color(0xFF2B72F5)
-                : const Color(0xFFE2E8F0),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: _tabController.index == index
-                  ? Colors.white
-                  : const Color(0xFF64748B),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 
   Widget _buildEmptyState({
     required IconData icon,
@@ -369,228 +256,378 @@ class _MasterViewState extends State<MasterView>
 
   // ── Driver Tab ────────────────────────────────────────────────────
   Widget _buildDriverTab(List<MasterDriver> drivers) {
-    return Column(
-      children: [
-        Container(
-          color: AppTheme.of(context).card,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Row(
+    final activeCount = drivers.where((d) => d.status == 'ACTIVE').length;
+    final pendingCount = drivers.where((d) => d.status == 'PENDING').length;
+    final suspendedCount = drivers.where((d) => d.status == 'SUSPENDED').length;
+    final projects = {
+      'All Projects',
+      ...drivers.map((d) => d.projectSite).where((s) => s.trim().isNotEmpty),
+    }.toList()..sort();
+
+    var filtered = drivers.where((d) {
+      if (_driverProjectFilter != 'All Projects' &&
+          d.projectSite != _driverProjectFilter) {
+        return false;
+      }
+      if (_driverStatusFilter != 'All Status' &&
+          d.status != _driverStatusFilter) {
+        return false;
+      }
+      if (_driverSearchQuery.isEmpty) {
+        return true;
+      }
+      return d.name.toLowerCase().contains(_driverSearchQuery) ||
+          d.empId.toLowerCase().contains(_driverSearchQuery) ||
+          d.mobile.toLowerCase().contains(_driverSearchQuery) ||
+          d.email.toLowerCase().contains(_driverSearchQuery);
+    }).toList();
+
+    filtered.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<FleetController>().fetchApiDrivers(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
+        children: [
+          _driverMetricCards(activeCount, pendingCount, suspendedCount),
+          const SizedBox(height: 10),
+          _driverFilterBar(projects),
+          const SizedBox(height: 10),
+          Row(
             children: [
-              Expanded(
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.of(context).isDark
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.of(context).cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.search,
-                        size: 18,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _driverSearchController,
-                          focusNode: _driverSearchFocus,
-                          onChanged: (v) => setState(
-                            () => _driverSearchQuery = v.toLowerCase(),
-                          ),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            color: AppTheme.of(context).textPrimary,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search driver name, ID...',
-                            hintStyle: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                'Drivers (${filtered.length})',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.of(context).textPrimary,
                 ),
               ),
-              const SizedBox(width: 10),
-              SizedBox(
-                height: 40,
-                child: ElevatedButton.icon(
-                  onPressed: () => _showEnrollDriverSheet(context),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(
-                    AppLocalizations.of(context).translate('enroll'),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _showEnrollDriverSheet(context),
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+                label: const Text('Enroll Driver'),
+              ),
+            ],
+          ),
+          if (filtered.isEmpty)
+            _buildEmptyState(
+              icon: Icons.person_search_rounded,
+              title: 'No matching drivers',
+              subtitle: 'Try changing search or filters',
+              ctaText: 'Clear Filters',
+              onAdd: () {
+                setState(() {
+                  _driverSearchController.clear();
+                  _driverSearchQuery = '';
+                  _driverProjectFilter = 'All Projects';
+                  _driverStatusFilter = 'All Status';
+                });
+              },
+            )
+          else
+            ...filtered.map((d) => _buildDriverRow(d)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDriverRow(MasterDriver d) {
+    final isSelected = _selectedDriverKey == _driverKey(d);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.of(context).card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            onTap: () => setState(
+              () => _selectedDriverKey = isSelected ? null : _driverKey(d),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1E3A8A),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        d.initials,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.name,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.of(context).textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${d.projectSite} · ${d.shift}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppTheme.of(context).textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _chip(d.status, _statusColor(d.status)),
+                            _chip(
+                              d.licenseStatus,
+                              _licenseColor(d.licenseStatus),
+                            ),
+                            if (d.safetyScore > 0)
+                              _chip(
+                                'Score ${d.safetyScore}',
+                                _scoreColor(d.safetyScore),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  Icon(
+                    isSelected
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isSelected) _buildDriverDetail(d),
+        ],
+      ),
+    );
+  }
+
+  String _driverKey(MasterDriver d) => d.driverId ?? d.empId;
+
+  Widget _driverMetricCards(
+    int activeCount,
+    int pendingCount,
+    int suspendedCount,
+  ) {
+    Widget card({
+      required String label,
+      required int value,
+      required Color color,
+      required IconData icon,
+    }) {
+      return Container(
+        width: 190,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.of(context).card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$value',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    label,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.of(context).textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 116,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          card(
+            label: 'ACTIVE',
+            value: activeCount,
+            color: const Color(0xFF10B981),
+            icon: Icons.check_rounded,
+          ),
+          const SizedBox(width: 10),
+          card(
+            label: 'PENDING ENROLLMENT',
+            value: pendingCount,
+            color: const Color(0xFFF59E0B),
+            icon: Icons.schedule_rounded,
+          ),
+          const SizedBox(width: 10),
+          card(
+            label: 'SUSPENDED',
+            value: suspendedCount,
+            color: const Color(0xFFEF4444),
+            icon: Icons.warning_amber_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _driverFilterBar(List<String> projects) {
+    DropdownMenuItem<String> item(String value) => DropdownMenuItem<String>(
+      value: value,
+      child: Text(value, overflow: TextOverflow.ellipsis),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppTheme.of(context).card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _driverSearchController,
+                  focusNode: _driverSearchFocus,
+                  onChanged: (v) =>
+                      setState(() => _driverSearchQuery = v.toLowerCase()),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    hintText: 'Search name, ID, mobile, email',
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-        Expanded(
-          child: Builder(
-            builder: (_) {
-              var filtered = drivers.toList();
-              if (_driverSearchQuery.isNotEmpty) {
-                filtered = filtered.where((d) {
-                  return d.name.toLowerCase().contains(_driverSearchQuery) ||
-                      d.empId.toLowerCase().contains(_driverSearchQuery) ||
-                      d.mobile.toLowerCase().contains(_driverSearchQuery);
-                }).toList();
-                // Sort: prefix matches first, then alphabetically
-                filtered.sort((a, b) {
-                  final aStarts =
-                      a.name.toLowerCase().startsWith(_driverSearchQuery)
-                      ? 0
-                      : 1;
-                  final bStarts =
-                      b.name.toLowerCase().startsWith(_driverSearchQuery)
-                      ? 0
-                      : 1;
-                  if (aStarts != bStarts) return aStarts.compareTo(bStarts);
-                  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                });
-              } else {
-                filtered.sort(
-                  (a, b) =>
-                      a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 100),
-                itemCount: filtered.length,
-                itemBuilder: (_, i) => _buildDriverRow(filtered[i], i),
-              );
-            },
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _driverProjectFilter,
+                  isExpanded: true,
+                  decoration: _miniFilterDec('Project'),
+                  items: projects.map(item).toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => _driverProjectFilter = v);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _driverStatusFilter,
+                  isExpanded: true,
+                  decoration: _miniFilterDec('Status'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'All Status',
+                      child: Text('All Status'),
+                    ),
+                    DropdownMenuItem(value: 'ACTIVE', child: Text('ACTIVE')),
+                    DropdownMenuItem(value: 'PENDING', child: Text('PENDING')),
+                    DropdownMenuItem(
+                      value: 'SUSPENDED',
+                      child: Text('SUSPENDED'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => _driverStatusFilter = v);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildDriverRow(MasterDriver d, int index) {
-    final isSelected = _selectedDriverIndex == index;
-    return Column(
-      children: [
-        InkWell(
-          onTap: () =>
-              setState(() => _selectedDriverIndex = isSelected ? null : index),
-          child: Container(
-            color: isSelected
-                ? const Color(0xFFEFF6FF)
-                : AppTheme.of(context).card,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 3,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF10B981)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1E3A8A),
-                    shape: BoxShape.circle,
-                  ),
-                  child:
-                      d.facePhotos.isNotEmpty &&
-                          d.facePhotos.values.first.isNotEmpty
-                      ? ClipOval(
-                          child: Image.file(
-                            d.facePhotos.values.first.first,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Center(
-                          child: Text(
-                            d.initials,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        d.name,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.of(context).textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${d.empId} · ${d.totalPhotos} photos',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _chip(d.licenseStatus, _licenseColor(d.licenseStatus)),
-                const SizedBox(width: 6),
-                _chip(
-                  d.enrollment,
-                  d.enrollment == 'ENROLLED'
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (isSelected) _buildDriverDetail(d),
-        const Divider(height: 1, color: Color(0xFFF1F5F9)),
-      ],
+  InputDecoration _miniFilterDec(String label) {
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
     );
   }
 
   Widget _chip(String label, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
@@ -603,6 +640,13 @@ class _MasterViewState extends State<MasterView>
     ),
   );
 
+  Color _statusColor(String status) => switch (status) {
+    'ACTIVE' => const Color(0xFF10B981),
+    'PENDING' => const Color(0xFFF59E0B),
+    'SUSPENDED' => const Color(0xFFEF4444),
+    _ => const Color(0xFF64748B),
+  };
+
   // ── Driver Detail ─────────────────────────────────────────────────
   Widget _buildDriverDetail(MasterDriver d) {
     final licColor = _licenseColor(d.licenseStatus);
@@ -611,6 +655,31 @@ class _MasterViewState extends State<MasterView>
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         children: [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showEditDriverSheet(d),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit Driver Profile'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _confirmDeleteDriver(d),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.danger,
+                  ),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                  label: const Text('Delete Driver'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
           // Profile
           Container(
             padding: const EdgeInsets.all(16),
@@ -637,6 +706,26 @@ class _MasterViewState extends State<MasterView>
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
+                          ),
+                        )
+                      : d.apiFacePhotoUrls.isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            d.apiFacePhotoUrls.first,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            headers: AuthService.instance.authHeaders,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(
+                                d.initials,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
                         )
                       : Center(
@@ -673,12 +762,7 @@ class _MasterViewState extends State<MasterView>
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          _chip(
-                            d.status,
-                            d.status == 'ACTIVE'
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFEF4444),
-                          ),
+                          _chip(d.status, _statusColor(d.status)),
                           const SizedBox(width: 6),
                           _chip(
                             '${d.totalPhotos} PHOTOS',
@@ -731,7 +815,7 @@ class _MasterViewState extends State<MasterView>
                 ),
                 _row('Shift', d.shift),
                 _row('Project', d.projectSite),
-                _row('Vehicle', d.vehicle ?? '—'),
+                _row('Vehicle', d.vehicleDisplay),
               ],
             ),
           ),
@@ -776,11 +860,80 @@ class _MasterViewState extends State<MasterView>
                   _detailPhotoRow(cond, d.facePhotos[cond] ?? []),
                   const SizedBox(height: 10),
                 ],
+                if (d.apiFacePhotoUrls.isNotEmpty) ...[
+                  _apiFacePhotosRow(d.apiFacePhotoUrls),
+                  const SizedBox(height: 10),
+                ],
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _apiFacePhotosRow(List<String> photoUrls) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 14,
+              color: Color(0xFF10B981),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Enrolled Photos',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '(${photoUrls.length})',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 70,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: photoUrls.length,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  photoUrls[i],
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                  headers: AuthService.instance.authHeaders,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 70,
+                    height: 70,
+                    color: const Color(0xFFF1F5F9),
+                    child: const Icon(
+                      Icons.broken_image_rounded,
+                      size: 24,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1701,17 +1854,17 @@ class _MasterViewState extends State<MasterView>
 
     setState(() {
       _drivers.add(driver);
-      _selectedDriverIndex = _drivers.length - 1;
+      _selectedDriverKey = _driverKey(driver);
     });
 
     final fleet = context.read<FleetController>();
-    String? assignedVehicleId;
+    List<String> assignedVehicleIds = [];
     if (selectedVehicle != null && selectedVehicle != 'Unassigned') {
       try {
         final v = fleet.vehicles.firstWhere(
           (v) => v.registration == selectedVehicle,
         );
-        assignedVehicleId = v.id;
+        assignedVehicleIds = [v.id];
       } catch (_) {}
     }
 
@@ -1722,7 +1875,7 @@ class _MasterViewState extends State<MasterView>
       licenseNumber: licenseCtrl.text.trim(),
       licenseExpiry: licenseExpiry,
       assignedProjectSite: selectedProject,
-      assignedVehicleId: assignedVehicleId,
+      assignedVehicleIds: assignedVehicleIds,
       shift: selectedShift,
       faceConditions: faceConditions,
       facePhotos: facePhotos,
@@ -1736,6 +1889,402 @@ class _MasterViewState extends State<MasterView>
         backgroundColor: const Color(0xFF10B981),
       ),
     );
+  }
+
+  Future<void> _showEditDriverSheet(MasterDriver driver) async {
+    final fleet = context.read<FleetController>();
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController(text: driver.name);
+    final emailCtrl = TextEditingController(text: driver.email);
+    final mobileCtrl = TextEditingController(text: driver.mobile);
+    final licenseCtrl = TextEditingController(text: driver.licenseNumber);
+
+    DateTime licenseExpiry = driver.licenseExpiry;
+    String selectedProject = driver.projectSite;
+    String selectedShift = driver.shift;
+    String? selectedVehicle = driver.vehicle;
+    int tab = 0;
+    bool submitting = false;
+
+    final sitesCtrl = context.read<ProjectSitesController>();
+    final projects = sitesCtrl.projectSites
+        .where((s) => s.isActive)
+        .map((s) => s.name)
+        .toList();
+    if (projects.isNotEmpty && !projects.contains(selectedProject)) {
+      projects.insert(0, selectedProject);
+    }
+
+    final shifts = [
+      'Morning (6AM–2PM)',
+      'Afternoon (2PM–10PM)',
+      'Night (10PM–6AM)',
+      'General',
+    ];
+    final Map<String, bool> faceConditions = {
+      'Normal Face': true,
+      'With Spectacles': driver.faceConditions.contains('With Spectacles'),
+      'Low Light Cabin': driver.faceConditions.contains('Low Light Cabin'),
+      'Cabin Lighting': driver.faceConditions.contains('Cabin Lighting'),
+      'Fixed Tablet Angle': driver.faceConditions.contains(
+        'Fixed Tablet Angle',
+      ),
+      'Sunglasses (if permitted)': driver.faceConditions.contains(
+        'Sunglasses (if permitted)',
+      ),
+    };
+    final Map<String, List<File>> facePhotos = driver.facePhotos.map(
+      (k, v) => MapEntry(k, List<File>.from(v)),
+    );
+    final vehicleOptions = [
+      'Select Vehicle',
+      ...fleet.vehicles.map((v) => v.registration),
+    ];
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) {
+          final totalPhotos = facePhotos.values.fold(0, (s, l) => s + l.length);
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 18,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: SizedBox(
+              width: 760,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Edit Driver Profile',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        _editTabPill(
+                          active: tab == 0,
+                          label: 'Profile',
+                          onTap: () => setDialog(() => tab = 0),
+                        ),
+                        const SizedBox(width: 6),
+                        _editTabPill(
+                          active: tab == 1,
+                          label: 'Face Photos',
+                          onTap: () => setDialog(() => tab = 1),
+                        ),
+                        IconButton(
+                          onPressed: submitting
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: tab == 0
+                          ? _buildProfileStep(
+                              formKey,
+                              nameCtrl,
+                              emailCtrl,
+                              mobileCtrl,
+                              licenseCtrl,
+                              licenseExpiry,
+                              selectedProject,
+                              selectedVehicle,
+                              selectedShift,
+                              projects,
+                              shifts,
+                              vehicleOptions,
+                              faceConditions,
+                              (v) => setDialog(() => licenseExpiry = v),
+                              (v) => setDialog(() => selectedProject = v),
+                              (v) => setDialog(() => selectedVehicle = v),
+                              (v) => setDialog(() => selectedShift = v),
+                              (k, v) => setDialog(() => faceConditions[k] = v),
+                            )
+                          : _buildFacePhotoStep(
+                              faceConditions,
+                              facePhotos,
+                              (c, f) => setDialog(
+                                () =>
+                                    facePhotos.putIfAbsent(c, () => []).add(f),
+                              ),
+                              (c, i) => setDialog(() {
+                                facePhotos[c]?.removeAt(i);
+                                if (facePhotos[c]?.isEmpty ?? true) {
+                                  facePhotos.remove(c);
+                                }
+                              }),
+                              (c) => setDialog(() => facePhotos.remove(c)),
+                            ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Row(
+                      children: [
+                        if (tab == 1)
+                          OutlinedButton.icon(
+                            onPressed: submitting
+                                ? null
+                                : () => setDialog(() => tab = 0),
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              size: 16,
+                            ),
+                            label: const Text('Back'),
+                          ),
+                        if (tab == 1) const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: submitting
+                                ? null
+                                : () async {
+                                    if (tab == 0 &&
+                                        !formKey.currentState!.validate()) {
+                                      return;
+                                    }
+                                    if (tab == 0) {
+                                      setDialog(() => tab = 1);
+                                      return;
+                                    }
+
+                                    setDialog(() => submitting = true);
+                                    final updated = MasterDriver(
+                                      driverId: driver.driverId,
+                                      name: nameCtrl.text.trim(),
+                                      empId: driver.empId,
+                                      email: emailCtrl.text.trim(),
+                                      mobile: mobileCtrl.text.trim(),
+                                      licenseNumber: licenseCtrl.text.trim(),
+                                      licenseExpiry: licenseExpiry,
+                                      projectSite: selectedProject,
+                                      vehicle: selectedVehicle,
+                                      shift: selectedShift,
+                                      status: driver.status,
+                                      enrollment: totalPhotos > 0
+                                          ? 'ENROLLED'
+                                          : 'PENDING',
+                                      licenseStatus: _calcLicenseStatus(
+                                        licenseExpiry,
+                                      ),
+                                      preferredLanguage:
+                                          driver.preferredLanguage,
+                                      safetyScore: driver.safetyScore,
+                                      faceConditions: faceConditions.entries
+                                          .where((e) => e.value)
+                                          .map((e) => e.key)
+                                          .toList(),
+                                      facePhotos: facePhotos,
+                                    );
+
+                                    try {
+                                      if (driver.driverId != null &&
+                                          driver.driverId!.isNotEmpty) {
+                                        String? assignedVehicleId;
+                                        if (selectedVehicle != null &&
+                                            selectedVehicle != 'Unassigned') {
+                                          try {
+                                            assignedVehicleId = fleet.vehicles
+                                                .firstWhere(
+                                                  (v) =>
+                                                      v.registration ==
+                                                      selectedVehicle,
+                                                )
+                                                .id;
+                                          } catch (_) {}
+                                        }
+
+                                        await fleet.updateDriverApi(
+                                          id: driver.driverId!,
+                                          fullName: updated.name,
+                                          email: updated.email,
+                                          mobileNumber: updated.mobile,
+                                          licenseNumber: updated.licenseNumber,
+                                          licenseExpiry: updated.licenseExpiry,
+                                          assignedProjectSite:
+                                              updated.projectSite,
+                                          assignedVehicleId: assignedVehicleId,
+                                          shift: updated.shift,
+                                          preferredLanguage:
+                                              updated.preferredLanguage,
+                                          faceConditions: faceConditions,
+                                          facePhotos: facePhotos,
+                                          isActive:
+                                              updated.status != 'SUSPENDED',
+                                          status: updated.status,
+                                        );
+                                      }
+
+                                      setState(() {
+                                        final idx = _drivers.indexWhere(
+                                          (x) =>
+                                              _driverKey(x) ==
+                                              _driverKey(driver),
+                                        );
+                                        if (idx != -1) {
+                                          _drivers[idx] = updated;
+                                        }
+                                      });
+
+                                      if (mounted) {
+                                        Navigator.pop(ctx);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Driver profile updated',
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              e.toString().replaceFirst(
+                                                'Exception: ',
+                                                '',
+                                              ),
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            backgroundColor: AppTheme.danger,
+                                          ),
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setDialog(() => submitting = false);
+                                      }
+                                    }
+                                  },
+                            icon: Icon(
+                              tab == 0
+                                  ? Icons.arrow_forward_rounded
+                                  : Icons.check_rounded,
+                              size: 16,
+                            ),
+                            label: Text(
+                              tab == 0 ? 'Update Face Photos' : 'Save Changes',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: submitting
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _editTabPill({
+    required bool active,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: active ? Colors.white : const Color(0xFF64748B),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteDriver(MasterDriver driver) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Driver'),
+        content: Text('Delete ${driver.name} from Driver Master?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      if (driver.driverId != null && driver.driverId!.isNotEmpty) {
+        await context.read<FleetController>().deleteDriverApi(driver.driverId!);
+      }
+      setState(() {
+        _drivers.removeWhere((d) => _driverKey(d) == _driverKey(driver));
+        if (_selectedDriverKey == _driverKey(driver)) {
+          _selectedDriverKey = null;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Driver deleted'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+    }
   }
 
   Widget _stepIndicator(int step) {
@@ -2491,7 +3040,7 @@ class _MasterViewState extends State<MasterView>
     // Build driver list from API drivers
     final driverOptions = [
       'Unassigned',
-      ...fleet.apiDrivers.map((d) => (d['fullName'] ?? 'Unknown').toString()),
+      ...fleet.apiDrivers.map((d) => d.fullName),
     ];
 
     showModalBottomSheet(
@@ -3130,10 +3679,9 @@ class _MasterViewState extends State<MasterView>
                                       if (selectedDriver != 'Unassigned') {
                                         try {
                                           final d = fleet.apiDrivers.firstWhere(
-                                            (d) =>
-                                                d['fullName'] == selectedDriver,
+                                            (d) => d.fullName == selectedDriver,
                                           );
-                                          selectedDriverId = d['id'];
+                                          selectedDriverId = d.id;
                                         } catch (_) {}
                                       }
 

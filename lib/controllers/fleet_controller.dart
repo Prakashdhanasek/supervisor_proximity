@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../models/fleet_models.dart';
+import '../models/driver.dart';
 import '../services/auth_service.dart';
 import '../main.dart';
 import '../login_screen.dart';
@@ -121,14 +120,18 @@ class FleetController extends ChangeNotifier {
 
   FleetController() {
     _seed();
-    fetchVehicles();
-    fetchApiDrivers();
-    fetchIncidents();
-    fetchScorecards();
     _tick = Timer.periodic(const Duration(seconds: 2), (_) => _simulate());
+    // Defer API calls so notifyListeners() doesn't fire during construction
+    Future.microtask(() {
+      fetchVehicles();
+      fetchApiDrivers();
+      fetchIncidents();
+      fetchScorecards();
+    });
   }
 
-  List<dynamic> apiDrivers = [];
+  List<Driver> apiDrivers = [];
+  bool isLoadingDrivers = false;
 
   void _checkUnauthorized(int statusCode) {
     if (statusCode == 401) {
@@ -142,28 +145,34 @@ class FleetController extends ChangeNotifier {
   }
 
   Future<void> fetchApiDrivers() async {
+    isLoadingDrivers = true;
+    notifyListeners();
     try {
       final url = Uri.parse(
         'https://proximity-driver-api.prod-app.in/api/drivers',
       );
+      final headers = AuthService.instance.authHeaders;
       debugPrint('==== API REQUEST: GET $url ====');
-      final response = await http.get(
-        url,
-        headers: AuthService.instance.authHeaders,
-      );
+      debugPrint('Auth token present: ${AuthService.instance.isLoggedIn}');
+      debugPrint('Headers: $headers');
+      final response = await http.get(url, headers: headers);
       debugPrint('==== API RESPONSE: GET $url ====');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        apiDrivers = data;
-        notifyListeners();
+        apiDrivers = data
+            .map((d) => Driver.fromJson(d as Map<String, dynamic>))
+            .toList();
       } else {
         _checkUnauthorized(response.statusCode);
       }
     } catch (e) {
       debugPrint('Error fetching drivers: $e');
+    } finally {
+      isLoadingDrivers = false;
+      notifyListeners();
     }
   }
 
@@ -515,10 +524,11 @@ class FleetController extends ChangeNotifier {
     required String licenseNumber,
     required DateTime licenseExpiry,
     required String assignedProjectSite,
-    required String? assignedVehicleId,
+    required List<String> assignedVehicleIds,
     required String shift,
     required Map<String, bool> faceConditions,
     required Map<String, List<File>> facePhotos,
+    String preferredLanguage = 'en',
   }) async {
     try {
       final url = Uri.parse(
@@ -531,7 +541,7 @@ class FleetController extends ChangeNotifier {
         "licenseNumber": licenseNumber,
         "licenseExpiry": licenseExpiry.toIso8601String(),
         "assignedProjectSite": assignedProjectSite,
-        "assignedVehicleId": assignedVehicleId,
+        "assignedVehicleIds": assignedVehicleIds,
         "shift": shift,
         "faceEnrollNormalFace": faceConditions['Normal Face'] ?? false,
         "faceEnrollWithSpectacles": faceConditions['With Spectacles'] ?? false,
@@ -541,8 +551,7 @@ class FleetController extends ChangeNotifier {
             faceConditions['Fixed Tablet Angle'] ?? false,
         "faceEnrollSunglasses":
             faceConditions['Sunglasses (if permitted)'] ?? false,
-        "isActive": true,
-        "status": "Active",
+        "preferredLanguage": preferredLanguage,
       };
 
       debugPrint('==== API REQUEST: POST $url ====');
@@ -617,6 +626,109 @@ class FleetController extends ChangeNotifier {
       default:
         return 'normalFace';
     }
+  }
+
+  Future<void> updateDriverApi({
+    required String id,
+    required String fullName,
+    required String email,
+    required String mobileNumber,
+    required String licenseNumber,
+    required DateTime licenseExpiry,
+    required String assignedProjectSite,
+    required String? assignedVehicleId,
+    required String shift,
+    required String preferredLanguage,
+    required Map<String, bool> faceConditions,
+    required Map<String, List<File>> facePhotos,
+    required bool isActive,
+    required String status,
+  }) async {
+    try {
+      final url = Uri.parse(
+        'https://proximity-driver-api.prod-app.in/api/drivers/$id',
+      );
+      final payload = {
+        'fullName': fullName,
+        'email': email,
+        'mobileNumber': mobileNumber,
+        'licenseNumber': licenseNumber,
+        'licenseExpiry': licenseExpiry.toIso8601String(),
+        'assignedProjectSite': assignedProjectSite,
+        'assignedVehicleIds': assignedVehicleId == null
+            ? <String>[]
+            : <String>[assignedVehicleId],
+        'shift': shift,
+        'faceEnrollNormalFace': faceConditions['Normal Face'] ?? false,
+        'faceEnrollWithSpectacles': faceConditions['With Spectacles'] ?? false,
+        'faceEnrollLowLightCabin': faceConditions['Low Light Cabin'] ?? false,
+        'faceEnrollCabinLighting': faceConditions['Cabin Lighting'] ?? false,
+        'faceEnrollFixedTabletAngle':
+            faceConditions['Fixed Tablet Angle'] ?? false,
+        'faceEnrollSunglasses':
+            faceConditions['Sunglasses (if permitted)'] ?? false,
+        'isActive': isActive,
+        'status': status,
+        'preferredLanguage': preferredLanguage,
+      };
+
+      final response = await http.put(
+        url,
+        headers: AuthService.instance.authJsonHeaders,
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        for (final entry in facePhotos.entries) {
+          final condition = _mapConditionToApi(entry.key);
+          for (final file in entry.value) {
+            final photoUrl = Uri.parse(
+              'https://proximity-driver-api.prod-app.in/api/drivers/$id/face-photos',
+            );
+            final request = http.MultipartRequest('POST', photoUrl)
+              ..headers.addAll(AuthService.instance.authHeaders)
+              ..fields['faceCondition'] = condition
+              ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+            final streamedResponse = await request.send();
+            final photoResponse = await http.Response.fromStream(
+              streamedResponse,
+            );
+
+            if (photoResponse.statusCode != 200 &&
+                photoResponse.statusCode != 201 &&
+                photoResponse.statusCode != 409) {
+              _checkUnauthorized(photoResponse.statusCode);
+            }
+          }
+        }
+        await fetchApiDrivers();
+        return;
+      }
+
+      _checkUnauthorized(response.statusCode);
+      throw Exception('Unable to update driver (${response.statusCode})');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteDriverApi(String id) async {
+    final url = Uri.parse(
+      'https://proximity-driver-api.prod-app.in/api/drivers/$id',
+    );
+    final response = await http.delete(
+      url,
+      headers: AuthService.instance.authHeaders,
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      await fetchApiDrivers();
+      return;
+    }
+
+    _checkUnauthorized(response.statusCode);
+    throw Exception('Unable to delete driver (${response.statusCode})');
   }
 
   void addDriver({

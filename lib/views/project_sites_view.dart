@@ -43,11 +43,6 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
 
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: colors.surface,
-        iconTheme: IconThemeData(color: colors.textPrimary),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showRegisterDialog,
         backgroundColor: const Color(0xFF1E3A8A), // Dark blue
@@ -55,9 +50,7 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
         icon: const Icon(Icons.add),
         label: Text(
           'Add Project Site',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
         ),
       ),
       body: Stack(
@@ -101,14 +94,21 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
 
                 // Table Container
                 Expanded(
-                  child: controller.error != null && controller.projectSites.isEmpty
+                  child:
+                      controller.error != null &&
+                          controller.projectSites.isEmpty
                       ? Center(
                           child: Text(
                             'Error: ${controller.error}',
                             style: TextStyle(color: AppTheme.danger),
                           ),
                         )
-                      : _buildList(context, controller.projectSites, colors, isDark),
+                      : _buildList(
+                          context,
+                          controller.projectSites,
+                          colors,
+                          isDark,
+                        ),
                 ),
                 const SizedBox(height: 24),
               ],
@@ -118,9 +118,7 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
             Positioned.fill(
               child: Container(
                 color: colors.surface.withValues(alpha: 0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: const Center(child: CircularProgressIndicator()),
               ),
             ),
         ],
@@ -128,7 +126,12 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<ProjectSite> items, AppColors colors, bool isDark) {
+  Widget _buildList(
+    BuildContext context,
+    List<ProjectSite> items,
+    AppColors colors,
+    bool isDark,
+  ) {
     if (items.isEmpty) {
       return Center(
         child: Text(
@@ -147,7 +150,10 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
       itemBuilder: (context, index) {
         final item = items[index];
         return Container(
-          decoration: AppTheme.cardDecoration(context, borderColor: colors.cardBorder),
+          decoration: AppTheme.cardDecoration(
+            context,
+            borderColor: colors.cardBorder,
+          ),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,9 +172,14 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: item.isActive ? AppTheme.success.withValues(alpha: 0.1) : colors.surface,
+                      color: item.isActive
+                          ? AppTheme.success.withValues(alpha: 0.1)
+                          : colors.surface,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -178,7 +189,9 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
                           width: 6,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: item.isActive ? AppTheme.success : colors.textMuted,
+                            color: item.isActive
+                                ? AppTheme.success
+                                : colors.textMuted,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -188,7 +201,9 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: item.isActive ? AppTheme.success : colors.textMuted,
+                            color: item.isActive
+                                ? AppTheme.success
+                                : colors.textMuted,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -214,13 +229,16 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => RegisterProjectSiteDialog(projectSite: item),
+                          builder: (context) =>
+                              RegisterProjectSiteDialog(projectSite: item),
                         );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: colors.textPrimary,
                         side: BorderSide(color: colors.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text('Edit'),
                     ),
@@ -230,24 +248,41 @@ class _ProjectSitesViewState extends State<ProjectSitesView> {
                     child: OutlinedButton(
                       onPressed: () async {
                         try {
-                          await context.read<ProjectSitesController>().toggleProjectSiteStatus(item.id, item.isActive);
+                          await context
+                              .read<ProjectSitesController>()
+                              .toggleProjectSiteStatus(item.id, item.isActive);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Project site ${item.isActive ? 'deactivated' : 'activated'} successfully')),
+                              SnackBar(
+                                content: Text(
+                                  'Project site ${item.isActive ? 'deactivated' : 'activated'} successfully',
+                                ),
+                              ),
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.danger),
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: AppTheme.danger,
+                              ),
                             );
                           }
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: item.isActive ? AppTheme.danger : AppTheme.success,
-                        side: BorderSide(color: item.isActive ? AppTheme.danger.withValues(alpha: 0.5) : AppTheme.success.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        foregroundColor: item.isActive
+                            ? AppTheme.danger
+                            : AppTheme.success,
+                        side: BorderSide(
+                          color: item.isActive
+                              ? AppTheme.danger.withValues(alpha: 0.5)
+                              : AppTheme.success.withValues(alpha: 0.5),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: Text(item.isActive ? 'Deactivate' : 'Activate'),
                     ),

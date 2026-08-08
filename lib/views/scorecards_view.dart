@@ -72,9 +72,6 @@ class _ScorecardsViewState extends State<ScorecardsView>
       backgroundColor: AppTheme.of(context).surface,
       body: Column(
         children: [
-          // ── Blue header ─────────────────────────────────────────────
-          _buildHeader(fleet),
-
           // ── Tab bar ─────────────────────────────────────────────────
           _buildTabBar(
             allCards.length,
@@ -98,74 +95,6 @@ class _ScorecardsViewState extends State<ScorecardsView>
       ),
     );
   }
-
-  // ────────────────────────────────────────────────────────────────────
-  // Header
-  // ────────────────────────────────────────────────────────────────────
-  Widget _buildHeader(FleetController fleet) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A4FBA), Color(0xFF3B82F6)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  fleet.supervisorInitials,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                AppLocalizations.of(context).translate('driver_performance'),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => _showSearchDialog(context),
-                child: _iconBtn(Icons.search_rounded),
-              ),
-              const SizedBox(width: 10),
-              _iconBtn(Icons.notifications_none_rounded),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _iconBtn(IconData icon) => Container(
-    width: 38,
-    height: 38,
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.2),
-      shape: BoxShape.circle,
-    ),
-    child: Icon(icon, color: Colors.white, size: 20),
-  );
 
   void _showSearchDialog(BuildContext context) {
     final controller = TextEditingController(text: _searchQuery);
