@@ -179,16 +179,6 @@ class _TripMonitoringViewState extends State<TripMonitoringView> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
-            Text(
-              'Trip Monitoring',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: colors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 10),
-
             // Date filter
             Row(
               children: [

@@ -53,23 +53,6 @@ class _VideoRecordingsViewState extends State<VideoRecordingsView> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
-            Text(
-              'Video Recordings',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: colors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Incident and trip recordings from API',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: colors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 14),
             if (_loading)
               const Center(
                 child: Padding(

@@ -100,8 +100,6 @@ class _DashboardOverviewViewState extends State<DashboardOverviewView> {
           onRefresh: _fetchData,
           child: CustomScrollView(
             slivers: [
-              // Header
-              SliverToBoxAdapter(child: _buildHeader(stats, colors)),
               // Summary Cards
               SliverToBoxAdapter(child: _buildSummaryCards(stats, colors)),
               // Daily Incident Trend
@@ -122,57 +120,6 @@ class _DashboardOverviewViewState extends State<DashboardOverviewView> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(DashboardStats stats, AppColors colors) {
-    final userName = AuthService.instance.fullName ?? 'Supervisor';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Overview',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${stats.totalVehicles} Total Vehicles · ${stats.totalDrivers} Total Drivers · ${stats.violationsToday} Violations Today',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                child: Text(
-                  userName.isNotEmpty ? userName[0].toUpperCase() : 'S',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

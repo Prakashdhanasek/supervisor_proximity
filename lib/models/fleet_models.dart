@@ -140,6 +140,13 @@ enum IncidentType {
   seatbelt,
   phoneUsage,
   unauthorizedDriver,
+  overspeed,
+  smoking,
+  sleepiness,
+  wakeUp,
+  driverChanged,
+  cableUnplugged,
+  unverifiedDriver,
 }
 
 extension IncidentTypeX on IncidentType {
@@ -156,6 +163,13 @@ extension IncidentTypeX on IncidentType {
     IncidentType.seatbelt => 'Seatbelt',
     IncidentType.phoneUsage => 'Phone Usage',
     IncidentType.unauthorizedDriver => 'Unauthorized Driver',
+    IncidentType.overspeed => 'Overspeed',
+    IncidentType.smoking => 'Smoking',
+    IncidentType.sleepiness => 'Sleepiness',
+    IncidentType.wakeUp => 'Wake Up',
+    IncidentType.driverChanged => 'Driver Changed',
+    IncidentType.cableUnplugged => 'Cable Unplugged',
+    IncidentType.unverifiedDriver => 'Unverified Driver',
   };
 }
 
@@ -259,7 +273,37 @@ class FleetIncident {
         type = IncidentType.phoneUsage;
         break;
       case 'UnauthorizedDriver':
+      case 'Unauthorized Driver':
         type = IncidentType.unauthorizedDriver;
+        break;
+      case 'Overspeed':
+        type = IncidentType.overspeed;
+        break;
+      case 'Smoking':
+        type = IncidentType.smoking;
+        break;
+      case 'Sleepiness':
+        type = IncidentType.sleepiness;
+        break;
+      case 'WakeUp':
+      case 'Wake Up':
+        type = IncidentType.wakeUp;
+        break;
+      case 'DriverChanged':
+      case 'Driver Changed':
+        type = IncidentType.driverChanged;
+        break;
+      case 'CableUnplugged':
+      case 'Cable Unplugged':
+        type = IncidentType.cableUnplugged;
+        break;
+      case 'SeatbeltNotWorn':
+      case 'Seatbelt Not Worn':
+        type = IncidentType.seatbelt;
+        break;
+      case 'UnverifiedDriver':
+      case 'Unverified Driver':
+        type = IncidentType.unverifiedDriver;
         break;
       default:
         return null; // Ignore unknown types

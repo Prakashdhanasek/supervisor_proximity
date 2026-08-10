@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/fleet_controller.dart';
 import 'admin_device_management_view.dart';
-import 'configuration_view.dart';
+import 'notification_settings_view.dart';
 import 'dashboard_overview_view.dart';
 import 'fleet_map_view.dart';
 import 'geofencing_view.dart';
@@ -150,7 +150,7 @@ class _SupervisorShellState extends State<SupervisorShell> {
           key: 'settings',
           title: 'Settings',
           icon: Icons.settings_outlined,
-          page: const ConfigurationView(),
+          page: const NotificationSettingsView(),
         ),
       ],
     ),

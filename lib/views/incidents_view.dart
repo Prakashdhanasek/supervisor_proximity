@@ -20,9 +20,16 @@ enum _Filter { all, unreviewed, resolved }
 
 class _IncidentsViewState extends State<IncidentsView> {
   _Filter _filter = _Filter.all;
-  DateTime? _selectedDate;
+  late DateTime _selectedDate;
   String? _selectedDriver;
   String? _selectedVehicle;
+  Set<IncidentType> _selectedTypes = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,28 +44,18 @@ class _IncidentsViewState extends State<IncidentsView> {
 
     // Apply all filters
     final incidents = fleet.incidents.where((i) {
-      // Status filter
-      final passStatus = switch (_filter) {
-        _Filter.all => true,
-        _Filter.unreviewed => i.reviewState == ReviewState.unreviewed,
-        _Filter.resolved => i.reviewState == ReviewState.resolved,
-      };
-      if (!passStatus) return false;
-
       // Date filter
-      if (_selectedDate != null) {
-        final incDate = DateTime(
-          i.timestamp.year,
-          i.timestamp.month,
-          i.timestamp.day,
-        );
-        final selDate = DateTime(
-          _selectedDate!.year,
-          _selectedDate!.month,
-          _selectedDate!.day,
-        );
-        if (incDate != selDate) return false;
-      }
+      final incDate = DateTime(
+        i.timestamp.year,
+        i.timestamp.month,
+        i.timestamp.day,
+      );
+      final selDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      if (incDate != selDate) return false;
 
       // Driver filter
       if (_selectedDriver != null && i.driverName != _selectedDriver)
@@ -66,6 +63,10 @@ class _IncidentsViewState extends State<IncidentsView> {
 
       // Vehicle filter
       if (_selectedVehicle != null && i.vehicleReg != _selectedVehicle)
+        return false;
+
+      // Type filter
+      if (_selectedTypes.isNotEmpty && !_selectedTypes.contains(i.type))
         return false;
 
       return true;
@@ -76,53 +77,10 @@ class _IncidentsViewState extends State<IncidentsView> {
       body: SafeArea(
         child: Column(
           children: [
-            // Title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Incidents & Evidence',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          '${incidents.length} / ${fleet.incidents.length}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: colors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_hasActiveFilters)
-                    IconButton(
-                      onPressed: _clearFilters,
-                      icon: Icon(
-                        Icons.filter_alt_off_rounded,
-                        color: colors.textMuted,
-                        size: 22,
-                      ),
-                      tooltip: 'Clear filters',
-                    ),
-                ],
-              ),
-            ),
-
-            // Filter bar: Date, Driver, Vehicle
-            _buildFilterBar(context, allDrivers, allVehicles),
             const SizedBox(height: 8),
 
-            // Status chips
-            _statusChips(context),
+            // Filter bar: Date, Driver, Vehicle, Type
+            _buildFilterBar(context, allDrivers, allVehicles),
             const SizedBox(height: 8),
 
             // Incident list
@@ -147,15 +105,16 @@ class _IncidentsViewState extends State<IncidentsView> {
   }
 
   bool get _hasActiveFilters =>
-      _selectedDate != null ||
       _selectedDriver != null ||
-      _selectedVehicle != null;
+      _selectedVehicle != null ||
+      _selectedTypes.isNotEmpty;
 
   void _clearFilters() {
     setState(() {
-      _selectedDate = null;
+      _selectedDate = DateTime.now();
       _selectedDriver = null;
       _selectedVehicle = null;
+      _selectedTypes = {};
     });
   }
 
@@ -173,10 +132,8 @@ class _IncidentsViewState extends State<IncidentsView> {
           _filterChip(
             context,
             icon: Icons.calendar_today_rounded,
-            label: _selectedDate != null
-                ? DateFormat('dd MMM yyyy').format(_selectedDate!)
-                : 'Date',
-            active: _selectedDate != null,
+            label: DateFormat('dd MMM yyyy').format(_selectedDate),
+            active: true,
             onTap: () => _pickDate(context),
           ),
           const SizedBox(width: 8),
@@ -196,6 +153,17 @@ class _IncidentsViewState extends State<IncidentsView> {
             label: _selectedVehicle ?? 'All Vehicles',
             active: _selectedVehicle != null,
             onTap: () => _showVehiclePicker(context, vehicles),
+          ),
+          const SizedBox(width: 8),
+          // Type filter
+          _filterChip(
+            context,
+            icon: Icons.warning_amber_rounded,
+            label: _selectedTypes.isEmpty
+                ? 'All Types (${IncidentType.values.length})'
+                : 'Types (${_selectedTypes.length})',
+            active: _selectedTypes.isNotEmpty,
+            onTap: () => _showTypePicker(context),
           ),
         ],
       ),
@@ -287,6 +255,122 @@ class _IncidentsViewState extends State<IncidentsView> {
     if (picked != null) {
       setState(() => _selectedDate = picked);
     }
+  }
+
+  void _showTypePicker(BuildContext context) {
+    final colors = AppTheme.of(context);
+    final tempSelected = Set<IncidentType>.from(_selectedTypes);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.cardBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Select Incident Types',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setSheetState(() => tempSelected.clear());
+                    },
+                    child: Text(
+                      'Clear',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: IncidentType.values.length,
+                itemBuilder: (_, i) {
+                  final type = IncidentType.values[i];
+                  final isSelected = tempSelected.contains(type);
+                  return CheckboxListTile(
+                    value: isSelected,
+                    activeColor: AppTheme.primary,
+                    title: Text(
+                      type.label,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    onChanged: (v) {
+                      setSheetState(() {
+                        if (v == true) {
+                          tempSelected.add(type);
+                        } else {
+                          tempSelected.remove(type);
+                        }
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    setState(() => _selectedTypes = tempSelected);
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(
+                    'Apply',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showDriverPicker(BuildContext context, List<String> drivers) {
@@ -403,47 +487,6 @@ class _IncidentsViewState extends State<IncidentsView> {
             ),
           ),
           const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusChips(BuildContext context) {
-    Widget chip(_Filter f, String label) {
-      final active = _filter == f;
-      return GestureDetector(
-        onTap: () => setState(() => _filter = f),
-        child: Container(
-          margin: const EdgeInsets.only(right: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? AppTheme.primary : AppTheme.of(context).card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: active
-                  ? AppTheme.primary
-                  : AppTheme.of(context).cardBorder,
-            ),
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: active ? Colors.white : AppTheme.of(context).textSecondary,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          chip(_Filter.all, 'All'),
-          chip(_Filter.unreviewed, 'Unreviewed'),
-          chip(_Filter.resolved, 'Resolved'),
         ],
       ),
     );

@@ -45,6 +45,13 @@ IconData incidentIcon(IncidentType t) => switch (t) {
   IncidentType.seatbelt => Icons.airline_seat_recline_normal_rounded,
   IncidentType.phoneUsage => Icons.phone_in_talk_rounded,
   IncidentType.unauthorizedDriver => Icons.person_off_rounded,
+  IncidentType.overspeed => Icons.speed_rounded,
+  IncidentType.smoking => Icons.smoking_rooms_rounded,
+  IncidentType.sleepiness => Icons.nights_stay_rounded,
+  IncidentType.wakeUp => Icons.alarm_rounded,
+  IncidentType.driverChanged => Icons.swap_horiz_rounded,
+  IncidentType.cableUnplugged => Icons.cable_rounded,
+  IncidentType.unverifiedDriver => Icons.no_accounts_rounded,
 };
 
 class StatusChip extends StatelessWidget {
