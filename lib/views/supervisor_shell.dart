@@ -6,6 +6,7 @@ import '../controllers/fleet_controller.dart';
 import 'admin_device_management_view.dart';
 import 'configuration_view.dart';
 import 'dashboard_overview_view.dart';
+import 'driver_app_updates_view.dart';
 import 'fleet_map_view.dart';
 import 'geofencing_view.dart';
 import 'incidents_view.dart';
@@ -17,6 +18,7 @@ import 'theme/app_theme.dart';
 import 'trip_monitoring_view.dart';
 import 'vehicle_types_view.dart';
 import 'video_recordings_view.dart';
+
 
 class SupervisorShell extends StatefulWidget {
   const SupervisorShell({super.key});
@@ -144,13 +146,30 @@ class _SupervisorShellState extends State<SupervisorShell> {
           key: 'devices',
           title: 'Hardware Devices',
           icon: Icons.tablet_android_outlined,
-          page: const AdminDeviceManagementView(),
+          page: const AdminDeviceManagementView(initialTab: 1),
         ),
         _ShellItem(
           key: 'settings',
           title: 'Settings',
           icon: Icons.settings_outlined,
           page: const ConfigurationView(),
+        ),
+      ],
+    ),
+    _ShellSection(
+      title: 'Administration',
+      items: [
+        _ShellItem(
+          key: 'user-management',
+          title: 'User Management',
+          icon: Icons.people_outline_rounded,
+          page: const AdminDeviceManagementView(initialTab: 0),
+        ),
+        _ShellItem(
+          key: 'app-updates',
+          title: 'Driver App Updates',
+          icon: Icons.phone_android_outlined,
+          page: const DriverAppUpdatesView(),
         ),
       ],
     ),
@@ -239,7 +258,7 @@ class _SupervisorShellState extends State<SupervisorShell> {
                           'Proximity Guard',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.bold,
                             color: colors.textPrimary,
                           ),
                         ),

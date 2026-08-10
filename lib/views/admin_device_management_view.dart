@@ -8,7 +8,8 @@ import '../services/device_service.dart';
 import 'theme/app_theme.dart';
 
 class AdminDeviceManagementView extends StatefulWidget {
-  const AdminDeviceManagementView({super.key});
+  final int initialTab;
+  const AdminDeviceManagementView({super.key, this.initialTab = 0});
 
   @override
   State<AdminDeviceManagementView> createState() =>
@@ -29,7 +30,7 @@ class _AdminDeviceManagementViewState extends State<AdminDeviceManagementView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     _loadAll();
   }
 
